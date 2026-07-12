@@ -20,10 +20,11 @@ TradeQuantX Backtest Engine is designed for **quantitative researchers with mini
 ### From GitHub Releases (Recommended — Fastest, Pre-compiled)
 
 ```bash
-# Latest release (Linux x86_64, Python 3.13)
-pip install https://github.com/TradeQuantX/backtest-engine/releases/latest/download/backtest_engine-0.1.0-cp313-cp313-linux_x86_64.whl
+# 1. Go to releases page: https://github.com/TradeQuantX/backtest-engine/releases
+# 2. Click the .whl asset for your platform (Linux x86_64, Python 3.13)
+# 3. Install with pip:
 
-# Specific version (replace v0.1.0 with desired tag)
+# Example for v0.1.0:
 pip install https://github.com/TradeQuantX/backtest-engine/releases/download/v0.1.0/backtest_engine-0.1.0-cp313-cp313-linux_x86_64.whl
 ```
 
