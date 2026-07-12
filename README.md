@@ -17,32 +17,34 @@ TradeQuantX Backtest Engine is designed for **quantitative researchers with mini
 
 ## Installation
 
-### From GitHub (Recommended for Researchers)
+### From GitHub Releases (Recommended — Fastest, Pre-compiled)
 
 ```bash
-# Latest release
-pip install git+https://github.com/USERNAME/REPO_NAME.git
+# Latest release (Linux x86_64, Python 3.13)
+pip install https://github.com/TradeQuantX/backtest-engine/releases/latest/download/backtest_engine-0.1.0-cp313-cp313-linux_x86_64.whl
 
-# Specific version tag
-pip install git+https://github.com/USERNAME/REPO_NAME.git@v0.1.0
-
-# Development branch
-pip install git+https://github.com/USERNAME/REPO_NAME.git@main
+# Specific version (replace v0.1.0 with desired tag)
+pip install https://github.com/TradeQuantX/backtest-engine/releases/download/v0.1.0/backtest_engine-0.1.0-cp313-cp313-linux_x86_64.whl
 ```
 
-### From Pre-built Wheel (Fastest Install)
+**All releases:** https://github.com/TradeQuantX/backtest-engine/releases
+
+### From GitHub Source (Development / Bleeding Edge)
 
 ```bash
-# Download from GitHub Releases
-pip install backtest_engine-0.1.0-cp313-cp313-linux_x86_64.whl
+# Latest release tag
+pip install git+https://github.com/TradeQuantX/backtest-engine.git@v0.1.0
+
+# Main branch (unstable)
+pip install git+https://github.com/TradeQuantX/backtest-engine.git@main
 ```
 
-### From Source (Development)
+### From Source (Development / Contributing)
 
 ```bash
-# Prerequisites: Python 3.11+, uv, gcc, python3-dev
-git clone https://github.com/USERNAME/REPO_NAME.git
-cd REPO_NAME
+# Prerequisites: Python 3.13+, uv, gcc, python3-dev
+git clone https://github.com/TradeQuantX/backtest-engine.git
+cd backtest-engine
 
 # Build wheel (uses Nuitka via pyproject.toml)
 uv build --wheel --no-build-isolation --out-dir dist
