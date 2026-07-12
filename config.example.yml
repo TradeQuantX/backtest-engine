@@ -1,0 +1,66 @@
+# TradeQuantX Data Provider Configuration
+# 
+# Priority (highest to lowest):
+# 1. Environment variables (TRADEX_*)
+# 2. ~/.tradex/config.yml
+# 3. ./config.yml (this file)
+
+# Global settings
+default_provider: "zerodha"  # or "dhan"
+data_dir: "~/.tradex/data"
+cache_dir: "~/.tradex/cache"
+log_level: "INFO"
+
+# Cache settings
+cache_enabled: true
+cache_ttl_seconds: 3600          # 1 hour for OHLC data
+instrument_cache_ttl_seconds: 86400  # 24 hours for instrument master
+
+# Storage settings
+storage_compression: "zstd"
+storage_partition_by: "month"    # month, day, year
+storage_row_group_size: 1000000
+
+# Retry settings
+max_retries: 3
+retry_base_delay: 1.0
+retry_max_delay: 60.0
+retry_exponential_base: 2.0
+
+# Chunking settings (max days per request by interval)
+chunk_size_days:
+  minute: 30
+  "3minute": 60
+  "5minute": 90
+  "15minute": 180
+  "30minute": 360
+  "60minute": 720
+  day: 2000
+
+# Provider configurations
+providers:
+  zerodha:
+    enabled: true
+    priority: 10
+    api_key: ""           # Your Zerodha API key
+    api_secret: ""        # Your Zerodha API secret
+    access_token: ""      # Access token (or use CLI wizard)
+    redirect_url: "http://127.0.0.1:6103"
+    totp_secret: ""       # Optional: TOTP secret for 2FA
+    token_file: "~/.tradex/tokens/zerodha.json"
+    rate_limit_per_second: 3.0
+    rate_limit_per_minute: 100
+    rate_limit_per_day: 10000
+  
+  dhan:
+    enabled: false
+    priority: 20
+    api_key: ""           # Your Dhan API key
+    api_secret: ""        # Your Dhan API secret
+    client_id: ""         # Your Dhan client ID
+    access_token: ""      # JWT token from web.dhan.co (24hr validity)
+    static_ip: ""         # Optional: static IP for order APIs
+    token_file: "~/.tradex/tokens/dhan.json"
+    rate_limit_per_second: 5.0
+    rate_limit_per_minute: 250
+    rate_limit_per_day: 7000
