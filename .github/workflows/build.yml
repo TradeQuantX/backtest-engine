@@ -68,7 +68,7 @@ jobs:
       
       - name: Build wheel with Nuitka
         run: |
-          uv build --wheel --no-build-isolation --out-dir dist
+          uv run uv build --wheel --no-build-isolation --out-dir dist
       
       - name: Verify wheel
         run: |
@@ -77,8 +77,8 @@ jobs:
       
       - name: Test wheel import
         run: |
-          pip install dist/*.whl
-          python -c "from backtest_engine.data_provider import DataProviderClient; print('Import successful!')"
+          uv pip install dist/*.whl
+          uv run python -c "from backtest_engine.data_provider import DataProviderClient; print('Import successful!')"
       
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
