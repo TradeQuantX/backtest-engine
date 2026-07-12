@@ -1,0 +1,7 @@
+[project]
+name = "backtest-engine"
+version = "0.1.0"
+description = "Event Driven Backtest Framework"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
