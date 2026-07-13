@@ -25,7 +25,7 @@ rm -rf "${PROJECT_DIR}/*.egg-info"
 echo ""
 echo "Building wheel with nuitka distutils backend..."
 cd "${PROJECT_DIR}"
-uv build --wheel --no-build-isolation --out-dir "${BUILD_DIR}"
+uv build --wheel --no-build-isolation -vv --out-dir "${BUILD_DIR}"
 
 echo ""
 echo "=========================================="
