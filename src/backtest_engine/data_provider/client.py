@@ -126,6 +126,12 @@ class DataProviderClient:
     
     async def _create_providers(self) -> None:
         """Create provider instances from configuration."""
+        # Explicitly register providers (avoids import-time side effects)
+        from backtest_engine.data_provider.providers.zerodha import ZerodhaProvider
+        from backtest_engine.data_provider.providers.dhan import DhanProvider
+        ProviderRegistry.register(ZerodhaProvider)
+        ProviderRegistry.register(DhanProvider)
+        
         enabled_providers = self._config.get_enabled_providers()
         
         if not enabled_providers:
@@ -294,10 +300,14 @@ class DataProviderClient:
         self._default_provider = None
         self._initialized = False
     
-    def __enter__(self):
-        """Sync context manager entry."""
-        import asyncio
-        asyncio.run(self.initialize())
+    async def __aenter__(self) -> "DataProviderClient":
+        """Async context manager entry."""
+        await self.initialize()
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Async context manager exit."""
+        await self.close()
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):

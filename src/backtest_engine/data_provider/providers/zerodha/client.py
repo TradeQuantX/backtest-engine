@@ -3,11 +3,10 @@ Zerodha Kite Connect provider implementation.
 """
 
 import hashlib
-import hmac
 import json
 from datetime import datetime
 from typing import Optional
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
 
@@ -27,7 +26,7 @@ from backtest_engine.data_provider.interfaces import (
     NormalizedInstrument,
 )
 from backtest_engine.data_provider.providers.base import BaseProvider
-from backtest_engine.data_provider.providers.registry import register_provider
+from backtest_engine.data_provider.providers.registry import ProviderRegistry
 from backtest_engine.data_provider.utils import (
     normalize_exchange,
     normalize_instrument_type,
@@ -39,7 +38,6 @@ from backtest_engine.data_provider.utils import (
 )
 
 
-@register_provider
 class ZerodhaProvider(BaseProvider):
     """Zerodha Kite Connect data provider."""
     
@@ -80,7 +78,7 @@ class ZerodhaProvider(BaseProvider):
     def _get_auth_headers(self) -> dict:
         """Get authorization headers."""
         if not self._access_token:
-            raise AuthenticationError("Not authenticated", provider=self.name)
+            raise AuthError("Not authenticated", provider=self.name)
         return {
             "Authorization": f"token {self.config.api_key}:{self._access_token}",
         }
@@ -110,7 +108,7 @@ class ZerodhaProvider(BaseProvider):
     
     async def _run_oauth_flow(self) -> str:
         """
-        Run OAuth flow with browser redirect.
+        Run OAuth flow with browser redirect using aiohttp.
         
         This is the CLI wizard approach:
         1. Generate login URL
@@ -119,10 +117,8 @@ class ZerodhaProvider(BaseProvider):
         4. Exchange request_token for access_token
         """
         import webbrowser
-        from http.server import HTTPServer, BaseHTTPRequestHandler
-        import threading
         import urllib.parse
-        from urllib.parse import urlparse
+        from aiohttp import web
         
         # Parse redirect_url to get host and port for callback server
         redirect_url = self.config.redirect_url
@@ -141,39 +137,39 @@ class ZerodhaProvider(BaseProvider):
         request_token = None
         error = None
         
-        class CallbackHandler(BaseHTTPRequestHandler):
-            def do_GET(self):
-                nonlocal request_token, error
-                query = urllib.parse.urlparse(self.path).query
-                params = urllib.parse.parse_qs(query)
-                
-                if "request_token" in params:
-                    request_token = params["request_token"][0]
-                    self.send_response(200)
-                    self.send_header("Content-type", "text/html")
-                    self.end_headers()
-                    self.wfile.write(b"<h1>Authentication successful! You can close this window.</h1>")
-                elif "error" in params:
-                    error = params["error"][0]
-                    self.send_response(400)
-                    self.send_header("Content-type", "text/html")
-                    self.end_headers()
-                    self.wfile.write(f"<h1>Authentication failed: {error}</h1>".encode())
-                else:
-                    self.send_response(400)
-                    self.end_headers()
-                
-                # Shutdown server
-                threading.Thread(target=self.server.shutdown).start()
+        async def handle_callback(request):
+            nonlocal request_token, error
+            query = urllib.parse.urlparse(request.url).query
+            params = urllib.parse.parse_qs(query)
             
-            def log_message(self, format, *args):
-                pass  # Suppress logs
+            if "request_token" in params:
+                request_token = params["request_token"][0]
+                return web.Response(
+                    text="<h1>Authentication successful! You can close this window.</h1>",
+                    content_type="text/html"
+                )
+            elif "error" in params:
+                error = params["error"][0]
+                return web.Response(
+                    text=f"<h1>Authentication failed: {error}</h1>",
+                    content_type="text/html",
+                    status=400
+                )
+            else:
+                return web.Response(
+                    text="<h1>Invalid callback</h1>",
+                    content_type="text/html",
+                    status=400
+                )
         
-        # Start callback server on the same host/port as redirect_url
-        server = HTTPServer((callback_host, callback_port), CallbackHandler)
-        server_thread = threading.Thread(target=server.serve_forever)
-        server_thread.daemon = True
-        server_thread.start()
+        # Create aiohttp app
+        app = web.Application()
+        app.router.add_get("/callback", handle_callback)
+        
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, callback_host, callback_port)
+        await site.start()
         
         try:
             # Open browser
@@ -181,21 +177,25 @@ class ZerodhaProvider(BaseProvider):
             print(f"If browser doesn't open, visit: {login_url}")
             webbrowser.open(login_url)
             
-            # Wait for callback
-            server_thread.join(timeout=120)
+            # Wait for callback (with timeout)
+            import asyncio
+            for _ in range(120):  # 120 seconds timeout
+                if request_token or error:
+                    break
+                await asyncio.sleep(1)
             
             if error:
                 raise OAuthFlowError(f"OAuth error: {error}", provider=self.name)
             
             if not request_token:
-                raise OAuthFlowError("No request token received", provider=self.name)
+                raise OAuthFlowError("No request token received (timeout)", provider=self.name)
             
             # Exchange request_token for access_token
             access_token = await self._exchange_token(request_token)
             return access_token
             
         finally:
-            server.shutdown()
+            await runner.cleanup()
     
     async def _exchange_token(self, request_token: str) -> str:
         """Exchange request_token for access_token."""

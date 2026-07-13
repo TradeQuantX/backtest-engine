@@ -22,7 +22,7 @@ from backtest_engine.data_provider.interfaces import (
     NormalizedInstrument,
 )
 from backtest_engine.data_provider.providers.base import BaseProvider
-from backtest_engine.data_provider.providers.registry import register_provider
+from backtest_engine.data_provider.providers.registry import ProviderRegistry
 from backtest_engine.data_provider.utils import (
     dhan_instrument_to_normalized,
     dhan_ohlc_to_normalized,
@@ -34,7 +34,6 @@ from backtest_engine.data_provider.utils import (
 )
 
 
-@register_provider
 class DhanProvider(BaseProvider):
     """DhanHQ data provider."""
     
