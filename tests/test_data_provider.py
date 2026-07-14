@@ -32,7 +32,7 @@ from backtest_engine.data_provider.utils.chunking import (
     ChunkingConfig,
 )
 from backtest_engine.data_provider.utils.rate_limiter import (
-    TokenBucket,
+    RateLimitBucket,
     AsyncRateLimiter,
     RateLimitInfo,
 )
@@ -386,7 +386,7 @@ class TestRateLimiter:
     ])
     async def test_token_bucket_basic(self, rate, capacity, acquire_tokens, expected_remaining):
         """Test basic token bucket acquire and remaining tokens."""
-        bucket = TokenBucket(rate=rate, capacity=capacity)
+        bucket = RateLimitBucket(rate=rate, capacity=capacity)
         wait = await bucket.acquire(acquire_tokens)
         assert wait == 0.0
         
@@ -397,7 +397,7 @@ class TestRateLimiter:
     @pytest.mark.asyncio
     async def test_token_bucket_refill_over_time(self):
         """Test token bucket refills tokens over time."""
-        bucket = TokenBucket(rate=10, capacity=10)
+        bucket = RateLimitBucket(rate=10, capacity=10)
         await bucket.acquire(10)  # Exhaust
         assert bucket.get_info().remaining == 0
         
@@ -410,7 +410,7 @@ class TestRateLimiter:
     @pytest.mark.asyncio
     async def test_token_bucket_burst_and_wait(self):
         """Test burst capacity and blocking wait."""
-        bucket = TokenBucket(rate=5, capacity=5)
+        bucket = RateLimitBucket(rate=5, capacity=5)
         
         # Burst: acquire all 5 immediately
         wait = await bucket.acquire(5)

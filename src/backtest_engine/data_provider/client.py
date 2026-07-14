@@ -17,6 +17,7 @@ from backtest_engine.data_provider.config import (
 )
 from backtest_engine.data_provider.exceptions import (
     ConfigurationError,
+    InvalidConfigurationError,
     ProviderNotFoundError,
 )
 from backtest_engine.data_provider.interfaces import (
@@ -135,7 +136,7 @@ class DataProviderClient:
         enabled_providers = self._config.get_enabled_providers()
         
         if not enabled_providers:
-            raise ConfigurationError(
+            raise InvalidConfigurationError(
                 "No providers enabled in configuration",
                 provider="config",
             )
@@ -310,21 +311,6 @@ class DataProviderClient:
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Async context manager exit."""
-        await self.close()
-        return self
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Sync context manager exit."""
-        import asyncio
-        asyncio.run(self.close())
-    
-    async def __aenter__(self):
-        """Async context manager entry."""
-        await self.initialize()
-        return self
-    
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
         await self.close()
 

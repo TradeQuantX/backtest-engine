@@ -25,8 +25,8 @@ from backtest_engine.data_provider.utils.normalization import (
 )
 from backtest_engine.data_provider.utils.rate_limiter import (
     AsyncRateLimiter,
+    RateLimitBucket,
     RateLimitInfo,
-    TokenBucket,
     get_rate_limiter,
 )
 from backtest_engine.data_provider.utils.retry import (

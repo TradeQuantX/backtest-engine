@@ -29,7 +29,7 @@ from backtest_engine.data_provider.utils.chunking import (
     ChunkingConfig,
 )
 from backtest_engine.data_provider.utils.rate_limiter import (
-    TokenBucket,
+    RateLimitBucket,
     AsyncRateLimiter,
 )
 from backtest_engine.data_provider.utils.retry import (
@@ -329,7 +329,7 @@ class TestRateLimiterEdgeCases:
         """Test token bucket handles concurrent access correctly."""
         import asyncio
         
-        bucket = TokenBucket(rate=100, capacity=100)
+        bucket = RateLimitBucket(rate=100, capacity=100)
         
         async def acquire_tokens():
             return await bucket.acquire(1)
@@ -345,7 +345,7 @@ class TestRateLimiterEdgeCases:
     @pytest.mark.asyncio
     async def test_token_bucket_burst_then_wait(self):
         """Test burst capacity then wait for refill."""
-        bucket = TokenBucket(rate=10, capacity=10)
+        bucket = RateLimitBucket(rate=10, capacity=10)
         
         # Burst: use all 10 tokens
         wait = await bucket.acquire(10)
@@ -364,7 +364,7 @@ class TestRateLimiterEdgeCases:
     @pytest.mark.asyncio
     async def test_token_bucket_try_acquire(self):
         """Test try_acquire doesn't block."""
-        bucket = TokenBucket(rate=10, capacity=10)
+        bucket = RateLimitBucket(rate=10, capacity=10)
         
         # Should succeed
         assert await bucket.try_acquire(5) is True
@@ -409,7 +409,7 @@ class TestRateLimiterEdgeCases:
     @pytest.mark.asyncio
     async def test_token_bucket_zero_rate(self):
         """Test token bucket with zero rate (allows initial burst but no refill)."""
-        bucket = TokenBucket(rate=0, capacity=10)
+        bucket = RateLimitBucket(rate=0, capacity=10)
         
         # Should be able to acquire from initial capacity
         wait = await bucket.acquire(5)
@@ -429,7 +429,7 @@ class TestRateLimiterEdgeCases:
             pass  # Expected
         
         # get_info should not crash with zero rate when bucket is full
-        bucket2 = TokenBucket(rate=0, capacity=10)
+        bucket2 = RateLimitBucket(rate=0, capacity=10)
         info = bucket2.get_info()
         assert info.limit == 10
         assert info.remaining == 10

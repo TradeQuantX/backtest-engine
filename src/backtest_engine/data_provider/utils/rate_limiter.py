@@ -19,7 +19,7 @@ class RateLimitInfo:
     retry_after: Optional[float] = None
 
 
-class TokenBucket:
+class RateLimitBucket:
     """
     Token bucket rate limiter.
     
@@ -120,13 +120,13 @@ class AsyncRateLimiter:
     """
     
     def __init__(self):
-        self._buckets: dict[str, TokenBucket] = {}
+        self._buckets: dict[str, RateLimitBucket] = {}
         self._lock = asyncio.Lock()
     
-    def get_bucket(self, provider: str, rate: float, capacity: int) -> TokenBucket:
+    def get_bucket(self, provider: str, rate: float, capacity: int) -> RateLimitBucket:
         """Get or create token bucket for provider."""
         if provider not in self._buckets:
-            self._buckets[provider] = TokenBucket(rate, capacity)
+            self._buckets[provider] = RateLimitBucket(rate, capacity)
         return self._buckets[provider]
     
     async def acquire(
