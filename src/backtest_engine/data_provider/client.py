@@ -216,25 +216,29 @@ class DataProviderClient:
             Interval,
             Segment,
         )
+        from backtest_engine.data_provider.utils.normalization import normalize_interval
         
-        request = HistoricalDataRequest(
-            symbol=symbol,
-            exchange=Exchange(exchange.upper()),
-            segment=Segment(segment.upper()),
-            interval=Interval(interval.lower()),
-            from_date=from_date,
-            to_date=to_date,
-            continuous=continuous,
-            oi=oi,
-        )
-        
-        # Get provider
+        # Get provider first to know which interval format to use
         if provider:
             prov = self.get_provider(provider)
             if not prov:
                 raise ProviderNotFoundError(f"Provider not found: {provider}")
         else:
             prov = self.get_default_provider()
+        
+        # Normalize interval using provider-specific mapping
+        normalized_interval = normalize_interval(interval, prov.name)
+        
+        request = HistoricalDataRequest(
+            symbol=symbol,
+            exchange=Exchange(exchange.upper()),
+            segment=Segment(segment.upper()),
+            interval=normalized_interval,
+            from_date=from_date,
+            to_date=to_date,
+            continuous=continuous,
+            oi=oi,
+        )
         
         return await prov.get_historical_data(request)
     

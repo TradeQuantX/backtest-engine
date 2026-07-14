@@ -40,7 +40,8 @@ class RetryConfig:
     
     # Exception types to NOT retry
     non_retryable_exceptions: tuple[type[Exception], ...] = (
-        ProviderError,  # Generic provider error - might be non-retryable
+        # Only truly non-retryable errors (auth, validation, not found)
+        # ProviderError is too broad - it's the base class for retryable errors too
     )
 
 

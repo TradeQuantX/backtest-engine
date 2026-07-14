@@ -2,7 +2,6 @@
 DhanHQ provider implementation.
 """
 
-import json
 from datetime import datetime
 from typing import Optional
 
@@ -23,6 +22,7 @@ from backtest_engine.data_provider.interfaces import (
 )
 from backtest_engine.data_provider.providers.base import BaseProvider
 from backtest_engine.data_provider.providers.registry import ProviderRegistry
+from backtest_engine.data_provider.providers.dhan.auth import DhanAuthHelper
 from backtest_engine.data_provider.utils import (
     dhan_instrument_to_normalized,
     dhan_ohlc_to_normalized,
@@ -47,6 +47,7 @@ class DhanProvider(BaseProvider):
     def __init__(self, config: DhanConfig, global_config, cache=None, storage=None):
         super().__init__(config, global_config, cache, storage)
         self._client: Optional[httpx.AsyncClient] = None
+        self._auth_helper = DhanAuthHelper(config)
     
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
@@ -69,38 +70,19 @@ class DhanProvider(BaseProvider):
     def _get_auth_headers(self) -> dict:
         """Get authorization headers."""
         if not self._access_token:
-            raise AuthenticationError("Not authenticated", provider=self.name)
+            raise AuthError("Not authenticated", provider=self.name)
         return {
             "access-token": self._access_token,
         }
     
     async def _do_authenticate(self) -> str:
         """
-        Authenticate with DhanHQ.
+        Authenticate with DhanHQ using the auth helper.
         
-        For MVP: Uses manually provided 24-hour JWT token.
+        Returns access token.
         """
-        if self.config.access_token:
-            if await self._validate_token(self.config.access_token):
-                self._access_token = self.config.access_token
-                return self._access_token
-        
-        raise AuthenticationError(
-            "No valid access token provided. Please generate a token from web.dhan.co",
-            provider=self.name,
-        )
-    
-    async def _validate_token(self, token: str) -> bool:
-        """Validate access token by calling user profile."""
-        try:
-            client = await self._get_client()
-            response = await client.get(
-                "/v2/profile",
-                headers={"access-token": token},
-            )
-            return response.status_code == 200
-        except Exception:
-            return False
+        client = await self._get_client()
+        return await self._auth_helper.authenticate(client)
     
     async def _do_get_instruments(
         self,

@@ -66,7 +66,7 @@ __all__ = [
     # Exceptions
     "DataProviderError",
     "ConfigurationError",
-    "AuthenticationError",
+    "AuthError",
     "RateLimitError",
     "DataError",
     "ProviderError",

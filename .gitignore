@@ -221,3 +221,7 @@ __marimo__/
 
 # Secrets
 config.yml
+
+# Benchmark
+.bench_cache/
+.bench_data/

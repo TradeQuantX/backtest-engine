@@ -2,11 +2,9 @@
 Zerodha Kite Connect provider implementation.
 """
 
-import hashlib
-import json
+import asyncio
 from datetime import datetime
 from typing import Optional
-from urllib.parse import urlencode, urlparse
 
 import httpx
 
@@ -27,6 +25,7 @@ from backtest_engine.data_provider.interfaces import (
 )
 from backtest_engine.data_provider.providers.base import BaseProvider
 from backtest_engine.data_provider.providers.registry import ProviderRegistry
+from backtest_engine.data_provider.providers.zerodha.auth import ZerodhaAuthHelper
 from backtest_engine.data_provider.utils import (
     normalize_exchange,
     normalize_instrument_type,
@@ -56,6 +55,7 @@ class ZerodhaProvider(BaseProvider):
         super().__init__(config, global_config, cache, storage)
         self._client: Optional[httpx.AsyncClient] = None
         self._user_id: Optional[str] = None
+        self._auth_helper = ZerodhaAuthHelper(config)
     
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
@@ -85,203 +85,14 @@ class ZerodhaProvider(BaseProvider):
     
     async def _do_authenticate(self) -> str:
         """
-        Authenticate with Zerodha.
+        Authenticate with Zerodha using the auth helper.
         
-        For MVP: Uses CLI wizard with browser redirect.
         Returns access token.
         """
-        # Check if we have a valid token in config
-        if self.config.access_token:
-            if await self._validate_token(self.config.access_token):
-                self._access_token = self.config.access_token
-                return self._access_token
-        
-        # Try loading saved token from file
-        saved_token = await self._load_token()
-        if saved_token:
-            if await self._validate_token(saved_token):
-                self._access_token = saved_token
-                return self._access_token
-        
-        # Need to run OAuth flow
-        return await self._run_oauth_flow()
-    
-    async def _run_oauth_flow(self) -> str:
-        """
-        Run OAuth flow with browser redirect using aiohttp.
-        
-        This is the CLI wizard approach:
-        1. Generate login URL
-        2. Open browser
-        3. Wait for redirect with request_token
-        4. Exchange request_token for access_token
-        """
-        import webbrowser
-        import urllib.parse
-        from aiohttp import web
-        
-        # Parse redirect_url to get host and port for callback server
-        redirect_url = self.config.redirect_url
-        parsed_url = urlparse(redirect_url)
-        callback_host = parsed_url.hostname or "localhost"
-        callback_port = parsed_url.port or 8080
-        
-        # Generate login URL
-        login_url = (
-            f"{self.LOGIN_URL}?"
-            f"v=3&api_key={self.config.api_key}"
-            f"&redirect_url={urllib.parse.quote(redirect_url)}"
-        )
-        
-        # Server to capture redirect
-        request_token = None
-        error = None
-        
-        async def handle_callback(request):
-            nonlocal request_token, error
-            query = urllib.parse.urlparse(request.url).query
-            params = urllib.parse.parse_qs(query)
-            
-            if "request_token" in params:
-                request_token = params["request_token"][0]
-                return web.Response(
-                    text="<h1>Authentication successful! You can close this window.</h1>",
-                    content_type="text/html"
-                )
-            elif "error" in params:
-                error = params["error"][0]
-                return web.Response(
-                    text=f"<h1>Authentication failed: {error}</h1>",
-                    content_type="text/html",
-                    status=400
-                )
-            else:
-                return web.Response(
-                    text="<h1>Invalid callback</h1>",
-                    content_type="text/html",
-                    status=400
-                )
-        
-        # Create aiohttp app
-        app = web.Application()
-        app.router.add_get("/callback", handle_callback)
-        
-        runner = web.AppRunner(app)
-        await runner.setup()
-        site = web.TCPSite(runner, callback_host, callback_port)
-        await site.start()
-        
-        try:
-            # Open browser
-            print(f"Opening browser for Zerodha login...")
-            print(f"If browser doesn't open, visit: {login_url}")
-            webbrowser.open(login_url)
-            
-            # Wait for callback (with timeout)
-            import asyncio
-            for _ in range(120):  # 120 seconds timeout
-                if request_token or error:
-                    break
-                await asyncio.sleep(1)
-            
-            if error:
-                raise OAuthFlowError(f"OAuth error: {error}", provider=self.name)
-            
-            if not request_token:
-                raise OAuthFlowError("No request token received (timeout)", provider=self.name)
-            
-            # Exchange request_token for access_token
-            access_token = await self._exchange_token(request_token)
-            return access_token
-            
-        finally:
-            await runner.cleanup()
-    
-    async def _exchange_token(self, request_token: str) -> str:
-        """Exchange request_token for access_token."""
-        checksum = hashlib.sha256(
-            f"{self.config.api_key}{request_token}{self.config.api_secret}".encode()
-        ).hexdigest()
-        
         client = await self._get_client()
-        response = await client.post(
-            "/session/token",
-            data={
-                "api_key": self.config.api_key,
-                "request_token": request_token,
-                "checksum": checksum,
-            },
-            headers={"X-Kite-Version": "3"},
-        )
-        
-        if response.status_code != 200:
-            raise OAuthFlowError(
-                f"Token exchange failed: {response.text}",
-                provider=self.name,
-            )
-        
-        data = response.json()
-        if data.get("status") != "success":
-            raise OAuthFlowError(
-                f"Token exchange failed: {data.get('message', 'Unknown error')}",
-                provider=self.name,
-            )
-        
-        access_token = data["data"]["access_token"]
-        self._user_id = data["data"]["user_id"]
-        
-        # Save token
-        await self._save_token(access_token)
-        
-        return access_token
-    
-    async def _validate_token(self, token: str) -> bool:
-        """Validate access token by calling user profile."""
-        try:
-            client = await self._get_client()
-            response = await client.get(
-                "/user/profile",
-                headers={"Authorization": f"token {self.config.api_key}:{token}"},
-            )
-            return response.status_code == 200
-        except Exception:
-            return False
-    
-    async def _save_token(self, token: str) -> None:
-        """Save token to file."""
-        import os
-        from pathlib import Path
-        
-        token_file = Path(self.config.token_file).expanduser()
-        token_file.parent.mkdir(parents=True, exist_ok=True)
-        
-        data = {
-            "access_token": token,
-            "api_key": self.config.api_key,
-            "user_id": self._user_id,
-            "saved_at": datetime.utcnow().isoformat(),
-        }
-        
-        with open(token_file, "w") as f:
-            json.dump(data, f)
-        
-        # Restrict permissions
-        os.chmod(token_file, 0o600)
-    
-    async def _load_token(self) -> Optional[str]:
-        """Load token from file."""
-        from pathlib import Path
-        
-        token_file = Path(self.config.token_file).expanduser()
-        if not token_file.exists():
-            return None
-        
-        try:
-            with open(token_file) as f:
-                data = json.load(f)
-            return data.get("access_token")
-        except Exception:
-            return None
+        token = await self._auth_helper.authenticate(client)
+        self._user_id = self._auth_helper.user_id
+        return token
     
     async def _do_get_instruments(
         self,

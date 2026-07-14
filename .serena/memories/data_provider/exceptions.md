@@ -7,7 +7,7 @@
 ```
 DataProviderError (base)
 ├── ConfigurationError
-├── AuthenticationError
+├── AuthError
 │   ├── TokenExpiredError
 │   ├── InvalidCredentialsError
 │   └── AuthFlowError
@@ -54,7 +54,7 @@ logger.exception("Failed to fetch data: {}", error)
 - `TimeoutError`
 
 ## Non-Retryable
-- `AuthenticationError` (needs user action)
+- `AuthError` (needs user action)
 - `ValidationError` (bad input)
 - `InvalidSymbolError` (symbol doesn't exist)
 - `DataNotFoundError` (no data for range)

@@ -17,6 +17,13 @@ class CacheEntry:
     expires_at: Optional[datetime] = None
     metadata: Optional[dict] = None
 
+    @property
+    def is_expired(self) -> bool:
+        """Check if cache entry has expired."""
+        if self.expires_at is None:
+            return False
+        return datetime.utcnow() >= self.expires_at
+
 
 class CacheProtocol(ABC):
     """Abstract base class for cache implementations."""

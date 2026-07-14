@@ -49,27 +49,28 @@ class TokenBucket:
         Returns:
             Time waited in seconds
         """
+        total_wait = 0.0
         async with self._lock:
-            now = time.monotonic()
-            self._refill(now)
-            
-            if self._tokens >= tokens:
-                self._tokens -= tokens
-                return 0.0
-            
-            # Calculate wait time
-            needed = tokens - self._tokens
-            wait_time = needed / self.rate
-            
-            # Wait
-            await asyncio.sleep(wait_time)
-            
-            # Refill after wait
-            now = time.monotonic()
-            self._refill(now)
-            self._tokens -= tokens
-            
-            return wait_time
+            while True:
+                now = time.monotonic()
+                self._refill(now)
+                
+                if self._tokens >= tokens:
+                    self._tokens -= tokens
+                    return total_wait
+                
+                # Calculate wait time
+                needed = tokens - self._tokens
+                if self.rate <= 0:
+                    # Zero or negative rate means no refill - wait forever
+                    wait_time = float('inf')
+                else:
+                    wait_time = needed / self.rate
+                
+                # Wait while holding the lock to prevent race conditions
+                await asyncio.sleep(wait_time)
+                total_wait += wait_time
+                # Loop continues, re-checks with lock held
     
     async def try_acquire(self, tokens: int = 1) -> bool:
         """
