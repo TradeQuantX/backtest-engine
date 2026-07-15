@@ -184,7 +184,7 @@ class ZerodhaProvider(BaseProvider):
         
         kite_interval = interval_map.get(request.interval.value, "minute")
         
-        # Build request
+        # Build request - dates are already IST-aware
         params = {
             "from": request.from_date.strftime("%Y-%m-%d %H:%M:%S"),
             "to": request.to_date.strftime("%Y-%m-%d %H:%M:%S"),

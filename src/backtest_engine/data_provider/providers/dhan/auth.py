@@ -16,6 +16,7 @@ from backtest_engine.data_provider.config import DhanConfig
 from backtest_engine.data_provider.exceptions import (
     AuthError,
 )
+from backtest_engine.data_provider.utils import IST
 
 
 class DhanAuthHelper:
@@ -92,7 +93,7 @@ class DhanAuthHelper:
         data = {
             "access_token": token,
             "client_id": self.config.client_id,
-            "saved_at": datetime.utcnow().isoformat(),
+            "saved_at": datetime.now(IST).isoformat(),
         }
         
         with open(token_file, "w") as f:

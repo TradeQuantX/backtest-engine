@@ -5,7 +5,7 @@ Provides Parquet-based storage with partitioning.
 """
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
@@ -17,6 +17,7 @@ from backtest_engine.data_provider.interfaces import (
     StorageProtocol,
     WriteResult,
 )
+from backtest_engine.data_provider.utils import IST as _IST
 
 
 class ParquetStorage(StorageProtocol):
@@ -221,14 +222,14 @@ class ParquetStorage(StorageProtocol):
             
             # Filter by date range if specified
             if from_date:
-                # Ensure from_date is timezone-aware (UTC) for comparison
+                # Ensure from_date is timezone-aware (IST) for comparison
                 if from_date.tzinfo is None:
-                    from_date = from_date.replace(tzinfo=timezone.utc)
+                    from_date = from_date.replace(tzinfo=_IST)
                 combined = combined.filter(pl.col("timestamp") >= from_date)
             if to_date:
-                # Ensure to_date is timezone-aware (UTC) for comparison
+                # Ensure to_date is timezone-aware (IST) for comparison
                 if to_date.tzinfo is None:
-                    to_date = to_date.replace(tzinfo=timezone.utc)
+                    to_date = to_date.replace(tzinfo=_IST)
                 combined = combined.filter(pl.col("timestamp") <= to_date)
             
             return ReadResult(

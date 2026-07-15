@@ -24,6 +24,7 @@ from backtest_engine.data_provider.exceptions import (
     OAuthFlowError,
     TokenExpiredError,
 )
+from backtest_engine.data_provider.utils import IST
 
 
 class ZerodhaAuthHelper:
@@ -227,7 +228,7 @@ class ZerodhaAuthHelper:
             "access_token": token,
             "api_key": self.config.api_key,
             "user_id": self._user_id,
-            "saved_at": datetime.utcnow().isoformat(),
+            "saved_at": datetime.now(IST).isoformat(),
         }
         
         with open(token_file, "w") as f:

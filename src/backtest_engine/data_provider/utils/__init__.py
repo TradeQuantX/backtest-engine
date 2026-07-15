@@ -2,6 +2,11 @@
 Utilities package for data provider layer.
 """
 
+from zoneinfo import ZoneInfo
+
+# Centralized timezone constant - all timestamps are IST
+IST = ZoneInfo("Asia/Kolkata")
+
 from backtest_engine.data_provider.utils.chunking import (
     ChunkingConfig,
     DateChunk,
@@ -45,6 +50,8 @@ from backtest_engine.data_provider.utils.validation import (
 )
 
 __all__ = [
+    # Timezone
+    "IST",
     # Chunking
     "ChunkingConfig",
     "DateChunk",

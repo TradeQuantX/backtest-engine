@@ -62,13 +62,13 @@ class NormalizedOHLC:
     Normalized OHLC data point.
     
     All providers must convert their data to this format.
-    Timestamps are always UTC.
+    Timestamps are always IST (Asia/Kolkata).
     """
     symbol: str
     exchange: Exchange
     segment: Segment
     interval: Interval
-    timestamp: datetime  # UTC
+    timestamp: datetime  # IST
     open: float
     high: float
     low: float

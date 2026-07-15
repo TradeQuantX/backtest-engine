@@ -2,9 +2,10 @@
 Data normalization utilities.
 
 Converts provider-specific data formats to normalized models.
+All timestamps are normalized to IST (Asia/Kolkata).
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Optional
 
 import polars as pl
@@ -17,23 +18,22 @@ from backtest_engine.data_provider.interfaces.models import (
     NormalizedOHLC,
     Segment,
 )
+from backtest_engine.data_provider.utils import IST
 
 
 def normalize_timestamp(
     timestamp: Any,
     source_tz: str = "Asia/Kolkata",
-    target_tz: str = "UTC",
 ) -> datetime:
     """
-    Normalize timestamp to UTC datetime.
+    Normalize timestamp to IST datetime.
     
     Args:
         timestamp: Input timestamp (string, int, float, datetime)
         source_tz: Source timezone (default: IST)
-        target_tz: Target timezone (default: UTC)
         
     Returns:
-        UTC datetime
+        IST datetime
     """
     if isinstance(timestamp, datetime):
         dt = timestamp
@@ -41,7 +41,8 @@ def normalize_timestamp(
         # Assume epoch seconds or milliseconds
         if timestamp > 1e12:  # Milliseconds
             timestamp = timestamp / 1000
-        dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        # Provider epoch timestamps are IST-based
+        dt = datetime.fromtimestamp(timestamp, tz=IST)
     elif isinstance(timestamp, str):
         # Try parsing common formats
         for fmt in [
@@ -61,15 +62,12 @@ def normalize_timestamp(
     else:
         raise TypeError(f"Unsupported timestamp type: {type(timestamp)}")
     
-    # Ensure timezone aware
+    # Ensure timezone aware - assume IST if naive
     if dt.tzinfo is None:
-        # Assume source timezone
-        import zoneinfo
-        dt = dt.replace(tzinfo=zoneinfo.ZoneInfo(source_tz))
+        dt = dt.replace(tzinfo=IST)
     
-    # Convert to target timezone
-    import zoneinfo
-    return dt.astimezone(zoneinfo.ZoneInfo(target_tz))
+    # Convert to IST (not UTC)
+    return dt.astimezone(IST)
 
 
 def normalize_interval(interval: str, provider: str) -> Interval:
@@ -315,7 +313,7 @@ def normalized_to_polars(data: list[NormalizedOHLC]) -> pl.DataFrame:
             "exchange": pl.Utf8,
             "segment": pl.Utf8,
             "interval": pl.Utf8,
-            "timestamp": pl.Datetime("us", "UTC"),
+            "timestamp": pl.Datetime("us", "Asia/Kolkata"),
             "open": pl.Float64,
             "high": pl.Float64,
             "low": pl.Float64,

@@ -31,6 +31,7 @@ from backtest_engine.data_provider.interfaces import (
 from backtest_engine.data_provider.utils import (
     AsyncRateLimiter,
     ChunkingConfig,
+    IST,
     RetryConfig,
     chunk_date_range,
     get_rate_limiter,
@@ -175,8 +176,8 @@ class BaseProvider(DataProviderProtocol, ABC):
             entry = CacheEntry(
                 key=cache_key,
                 value=instruments,
-                created_at=datetime.utcnow(),
-                expires_at=datetime.utcnow() + timedelta(
+                created_at=datetime.now(IST),
+                expires_at=datetime.now(IST) + timedelta(
                     seconds=self.global_config.instrument_cache_ttl_seconds
                 ),
             )
@@ -200,8 +201,18 @@ class BaseProvider(DataProviderProtocol, ABC):
             cached = await self.cache.get(cache_key)
             if cached and not cached.is_expired:
                 response = cached.value
-                response.cached = True
-                return response
+                # Create new response with cached=True (frozen dataclass)
+                return HistoricalDataResponse(
+                    data=response.data,
+                    symbol=response.symbol,
+                    exchange=response.exchange,
+                    segment=response.segment,
+                    interval=response.interval,
+                    from_date=response.from_date,
+                    to_date=response.to_date,
+                    provider=response.provider,
+                    cached=True,
+                )
         
         # Check storage
         if self.storage:
@@ -224,7 +235,7 @@ class BaseProvider(DataProviderProtocol, ABC):
                     entry = CacheEntry(
                         key=cache_key,
                         value=response,
-                        created_at=datetime.utcnow(),
+                        created_at=datetime.now(IST),
                     )
                     await self.cache.set(entry)
                 return response
@@ -280,7 +291,7 @@ class BaseProvider(DataProviderProtocol, ABC):
             entry = CacheEntry(
                 key=cache_key,
                 value=response,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(IST),
             )
             await self.cache.set(entry)
         
@@ -436,8 +447,8 @@ class BaseProvider(DataProviderProtocol, ABC):
             entry = CacheEntry(
                 key=cache_key,
                 value=token,
-                created_at=datetime.utcnow(),
-                expires_at=datetime.utcnow() + timedelta(days=1),
+                created_at=datetime.now(IST),
+                expires_at=datetime.now(IST) + timedelta(days=1),
             )
             await self.cache.set(entry)
         

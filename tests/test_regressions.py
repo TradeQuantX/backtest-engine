@@ -6,9 +6,15 @@ These tests ensure the defects don't regress in future changes.
 """
 
 import pytest
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from backtest_engine.data_provider.utils import RateLimitBucket
 from backtest_engine.data_provider.client import DataProviderClient
 from backtest_engine.data_provider.exceptions import InvalidConfigurationError
+from backtest_engine.data_provider.utils.normalization import normalize_timestamp
+from backtest_engine.data_provider.interfaces.models import NormalizedOHLC, Exchange, Segment, Interval
+from backtest_engine.data_provider.utils import IST
 
 
 class TestRateLimitBucketRename:
@@ -100,6 +106,155 @@ class TestInvalidConfigurationError:
             assert e.provider == "config"
 
 
+class TestTimezoneISTStandardization:
+    """Regression tests for IST timezone standardization.
+    
+    These tests verify that all timestamps are consistently handled in IST
+    (Asia/Kolkata) throughout the system, eliminating UTC conversion bugs.
+    """
+    
+    def test_dhan_epoch_timestamp_interpreted_as_ist(self):
+        """Dhan epoch timestamps should be interpreted as IST, not UTC.
+        
+        This is a critical bug fix: Dhan API returns epoch timestamps that
+        represent IST time. Previously they were incorrectly interpreted as UTC,
+        causing a 5.5-hour offset error.
+        """
+        # Dhan epoch for 2024-01-01 09:15:00 IST
+        dhan_epoch = 1704080700
+        
+        ts = normalize_timestamp(dhan_epoch)
+        
+        # Should be 09:15 IST, not 09:15 UTC
+        assert ts.hour == 9
+        assert ts.minute == 15
+        assert ts.tzinfo is not None
+        assert str(ts.tzinfo) == "Asia/Kolkata"
+    
+    def test_zerodha_iso_timestamp_preserves_ist(self):
+        """Zerodha ISO timestamps with +0530 offset should remain IST."""
+        # Zerodha format: "2024-01-01T09:15:00+0530"
+        zerodha_ts = "2024-01-01T09:15:00+0530"
+        
+        ts = normalize_timestamp(zerodha_ts)
+        
+        assert ts.hour == 9
+        assert ts.minute == 15
+        assert str(ts.tzinfo) == "Asia/Kolkata"
+    
+    def test_naive_datetime_assumed_ist(self):
+        """Naive datetimes should be assumed to be IST."""
+        naive_dt = datetime(2024, 1, 1, 9, 15)
+        
+        ts = normalize_timestamp(naive_dt)
+        
+        assert ts.hour == 9
+        assert ts.minute == 15
+        assert str(ts.tzinfo) == "Asia/Kolkata"
+    
+    def test_normalized_ohlc_timestamps_are_ist(self):
+        """NormalizedOHLC timestamps should be IST."""
+        ohlc = NormalizedOHLC(
+            symbol="RELIANCE",
+            exchange=Exchange.NSE,
+            segment=Segment.EQ,
+            interval=Interval.MINUTE_1,
+            timestamp=datetime(2024, 1, 1, 9, 15, tzinfo=IST),
+            open=2500.0,
+            high=2510.0,
+            low=2495.0,
+            close=2505.0,
+            volume=100000,
+        )
+        
+        assert ohlc.timestamp.tzinfo is not None
+        assert str(ohlc.timestamp.tzinfo) == "Asia/Kolkata"
+    
+    def test_cache_expiration_uses_ist(self):
+        """Cache expiration should use IST-aware datetimes."""
+        from backtest_engine.data_provider.interfaces.cache import CacheEntry
+        
+        entry = CacheEntry(
+            key="test",
+            value="data",
+            created_at=datetime.now(IST),
+            expires_at=datetime.now(IST),
+        )
+        
+        # Should not raise TypeError when comparing timezone-aware datetimes
+        assert entry.is_expired is not None
+    
+    def test_polars_dataframe_schema_uses_ist(self):
+        """Polars DataFrame schema should use IST timezone."""
+        from backtest_engine.data_provider.utils.normalization import normalized_to_polars
+        
+        ohlc = NormalizedOHLC(
+            symbol="RELIANCE",
+            exchange=Exchange.NSE,
+            segment=Segment.EQ,
+            interval=Interval.MINUTE_1,
+            timestamp=datetime(2024, 1, 1, 9, 15, tzinfo=IST),
+            open=2500.0,
+            high=2510.0,
+            low=2495.0,
+            close=2505.0,
+            volume=100000,
+        )
+        
+        df = normalized_to_polars([ohlc])
+        
+        # Check schema uses IST timezone
+        assert "Asia/Kolkata" in str(df.schema["timestamp"])
+    
+    def test_validation_future_date_check_uses_ist(self):
+        """Future date validation should use IST timezone."""
+        from backtest_engine.data_provider.utils.validation import validate_historical_request
+        from backtest_engine.data_provider.interfaces.models import HistoricalDataRequest
+        
+        # Create a request with a date that's in the future in IST
+        # but might be in the past in UTC
+        future_ist = datetime.now(IST).replace(hour=23, minute=59)
+        
+        request = HistoricalDataRequest(
+            symbol="RELIANCE",
+            exchange=Exchange.NSE,
+            segment=Segment.EQ,
+            interval=Interval.MINUTE_1,
+            from_date=future_ist,
+            to_date=future_ist,
+        )
+        
+        errors = validate_historical_request(request)
+        
+        # Should detect future date in IST
+        assert any("future" in str(e).lower() for e in errors)
+    
+    def test_validation_handles_naive_datetimes(self):
+        """Validation should handle naive datetimes by treating them as IST."""
+        from backtest_engine.data_provider.utils.validation import validate_historical_request
+        from backtest_engine.data_provider.interfaces.models import HistoricalDataRequest
+        
+        # Create a request with naive datetimes (no timezone)
+        naive_past = datetime(2024, 1, 1, 9, 15)
+        naive_future = datetime(2024, 1, 2, 9, 15)  # Also naive, but after naive_past
+        
+        request = HistoricalDataRequest(
+            symbol="RELIANCE",
+            exchange=Exchange.NSE,
+            segment=Segment.EQ,
+            interval=Interval.MINUTE_1,
+            from_date=naive_past,
+            to_date=naive_future,
+        )
+        
+        errors = validate_historical_request(request)
+        
+        # Should handle naive datetimes without TypeError
+        assert isinstance(errors, list)
+        # Should not have future date errors (naive dates are in 2024)
+        assert not any("future" in str(e).lower() for e in errors)
+
+
 class TestImportIntegrity:
     """Regression test for import integrity (AST-based validation)."""
     
@@ -119,6 +274,40 @@ class TestImportIntegrity:
             cwd="/home/black_j/Dev/TradeQuantX/backtest/backtest_engine"
         )
         assert result.returncode == 0, f"Import integrity test failed:\n{result.stdout}\n{result.stderr}"
+
+
+class TestTimezoneImportIntegrity:
+    """Regression test to ensure IST is imported wherever datetime.now(IST) is used."""
+    
+    def test_all_ist_usage_has_import(self):
+        """Verify all files using datetime.now(IST) have the IST import.
+        
+        This catches the bug where datetime.now(IST) was used without importing IST.
+        """
+        import os
+        import re
+        
+        src_dir = "src/backtest_engine/data_provider"
+        files_missing_import = []
+        
+        for root, dirs, files in os.walk(src_dir):
+            for f in files:
+                if f.endswith(".py"):
+                    filepath = os.path.join(root, f)
+                    with open(filepath) as file:
+                        content = file.read()
+                    
+                    # Check if file uses datetime.now(IST) or IST directly
+                    uses_ist = bool(re.search(r'datetime\.now\(IST\)|tzinfo=IST|tzinfo=IST\)', content))
+                    # Check for IST in import statement (handles multi-line imports)
+                    has_import = "IST" in content and "from backtest_engine.data_provider.utils import" in content
+                    
+                    if uses_ist and not has_import:
+                        files_missing_import.append(filepath)
+        
+        assert not files_missing_import, (
+            f"Files using IST without import: {files_missing_import}"
+        )
 
 
 if __name__ == "__main__":

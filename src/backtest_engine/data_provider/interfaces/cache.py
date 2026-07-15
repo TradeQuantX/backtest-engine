@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional
 
+from backtest_engine.data_provider.utils import IST
+
 
 @dataclass(frozen=True, slots=True)
 class CacheEntry:
@@ -22,7 +24,7 @@ class CacheEntry:
         """Check if cache entry has expired."""
         if self.expires_at is None:
             return False
-        return datetime.utcnow() >= self.expires_at
+        return datetime.now(IST) >= self.expires_at
 
 
 class CacheProtocol(ABC):

@@ -64,12 +64,12 @@ class TestNormalizationEdgeCases:
 
     def test_normalize_timestamp_dst_transition(self):
         """Test timestamp normalization across DST boundaries."""
-        # Spring forward (March 10, 2024 in US)
-        ts = normalize_timestamp("2024-03-10 02:30:00", source_tz="US/Eastern", target_tz="UTC")
+        # Spring forward (March 10, 2024 in US) - should be converted to IST
+        ts = normalize_timestamp("2024-03-10 02:30:00", source_tz="US/Eastern")
         assert ts.tzinfo is not None
         
-        # Fall back (November 3, 2024 in US)
-        ts = normalize_timestamp("2024-11-03 01:30:00", source_tz="US/Eastern", target_tz="UTC")
+        # Fall back (November 3, 2024 in US) - should be converted to IST
+        ts = normalize_timestamp("2024-11-03 01:30:00", source_tz="US/Eastern")
         assert ts.tzinfo is not None
 
     def test_normalize_timestamp_leap_year(self):
@@ -84,13 +84,13 @@ class TestNormalizationEdgeCases:
         dt = datetime(2024, 1, 1, 9, 15, tzinfo=ZoneInfo("Asia/Kolkata"))
         ts = normalize_timestamp(dt)
         assert ts.tzinfo is not None
-        # Should be converted to UTC
-        assert ts.hour == 3  # 9:15 IST = 3:45 UTC
-        assert ts.minute == 45
+        # Should remain in IST (no conversion to UTC)
+        assert ts.hour == 9
+        assert ts.minute == 15
 
     def test_normalize_timestamp_epoch_milliseconds(self):
         """Test epoch milliseconds are handled correctly."""
-        # 2024-01-01 09:15:00 UTC in milliseconds
+        # 2024-01-01 09:15:00 IST in milliseconds
         ts = normalize_timestamp(1704092100000)
         assert ts.year == 2024
         assert ts.month == 1

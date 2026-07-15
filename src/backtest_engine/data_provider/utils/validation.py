@@ -5,7 +5,6 @@ Validates OHLC data, instruments, and requests.
 """
 
 from datetime import datetime
-from typing import Optional
 
 import polars as pl
 
@@ -18,6 +17,7 @@ from backtest_engine.data_provider.interfaces.models import (
     Segment,
 )
 from backtest_engine.data_provider.exceptions import ValidationError
+from backtest_engine.data_provider.utils import IST
 
 
 def validate_ohlc_data(data: list[NormalizedOHLC]) -> list[ValidationError]:
@@ -214,7 +214,11 @@ def validate_historical_request(request: HistoricalDataRequest) -> list[Validati
             field="symbol",
         ))
     
-    if request.from_date >= request.to_date:
+    # Ensure both dates are timezone-aware for comparison
+    from_date = request.from_date.replace(tzinfo=IST) if request.from_date.tzinfo is None else request.from_date
+    to_date = request.to_date.replace(tzinfo=IST) if request.to_date.tzinfo is None else request.to_date
+    
+    if from_date >= to_date:
         errors.append(ValidationError(
             "from_date must be before to_date",
             field="from_date/to_date",
@@ -222,15 +226,16 @@ def validate_historical_request(request: HistoricalDataRequest) -> list[Validati
         ))
     
     # Check date range not too far in future
-    now = datetime.now()
-    if request.from_date > now:
+    now = datetime.now(IST)
+    
+    if from_date > now:
         errors.append(ValidationError(
             "from_date cannot be in the future",
             field="from_date",
             value=request.from_date.isoformat(),
         ))
     
-    if request.to_date > now:
+    if to_date > now:
         errors.append(ValidationError(
             "to_date cannot be in the future",
             field="to_date",

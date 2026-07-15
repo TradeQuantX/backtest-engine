@@ -28,6 +28,7 @@ from backtest_engine.data_provider.interfaces import (
     NormalizedOHLC,
     StorageProtocol,
 )
+from backtest_engine.data_provider.utils import IST
 from backtest_engine.data_provider.providers import ProviderRegistry
 from backtest_engine.data_provider.providers.base import BaseProvider
 
@@ -205,11 +206,15 @@ class DataProviderClient:
         """
         await self.initialize()
         
-        # Parse dates
+        # Parse dates - make them IST-aware
         if isinstance(from_date, str):
-            from_date = datetime.fromisoformat(from_date)
+            from_date = datetime.fromisoformat(from_date).replace(tzinfo=IST)
+        elif isinstance(from_date, datetime) and from_date.tzinfo is None:
+            from_date = from_date.replace(tzinfo=IST)
         if isinstance(to_date, str):
-            to_date = datetime.fromisoformat(to_date)
+            to_date = datetime.fromisoformat(to_date).replace(tzinfo=IST)
+        elif isinstance(to_date, datetime) and to_date.tzinfo is None:
+            to_date = to_date.replace(tzinfo=IST)
         
         # Normalize enums
         from backtest_engine.data_provider.interfaces.models import (
