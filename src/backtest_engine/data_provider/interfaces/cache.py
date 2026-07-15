@@ -34,14 +34,8 @@ class CacheProtocol(ABC):
         ...
     
     @abstractmethod
-    async def set(
-        self,
-        key: str,
-        value: Any,
-        ttl_seconds: Optional[int] = None,
-        metadata: Optional[dict] = None,
-    ) -> None:
-        """Set cache entry with optional TTL."""
+    async def set(self, entry: CacheEntry) -> bool:
+        """Set cache entry. Returns True on success."""
         ...
     
     @abstractmethod
@@ -55,16 +49,8 @@ class CacheProtocol(ABC):
         ...
     
     @abstractmethod
-    async def clear(self, pattern: Optional[str] = None) -> int:
-        """
-        Clear cache entries matching pattern.
-        
-        Args:
-            pattern: Optional glob pattern (e.g., "zerodha:*")
-            
-        Returns:
-            Number of entries cleared.
-        """
+    async def clear(self) -> int:
+        """Clear all cache entries. Returns number of entries cleared."""
         ...
     
     @abstractmethod
