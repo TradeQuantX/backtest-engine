@@ -228,3 +228,6 @@ config.yml
 
 # agentmemory
 data/
+
+# backtest_files
+backtest_results/

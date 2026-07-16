@@ -18,8 +18,11 @@ from backtest_engine.engine.interfaces import (
     BacktestContext,
     CandleCallback,
     CandleEvent,
+    SignalCallback,
 )
 from backtest_engine.engine.loop import ExecutionLoop
+from backtest_engine.engine.position_manager import PositionManager
+from backtest_engine.engine.trade_logger import TradeLogger
 
 
 # Module-level fixtures for all test classes
@@ -94,30 +97,58 @@ def sample_context(sample_events):
     )
 
 
+@pytest.fixture
+def mock_position_manager():
+    """Create a mock PositionManager."""
+    return MagicMock(spec=PositionManager)
+
+
+@pytest.fixture
+def mock_trade_logger():
+    """Create a mock TradeLogger."""
+    return MagicMock(spec=TradeLogger)
+
+
 class TestExecutionLoop:
     """Test the deterministic execution loop."""
     
-    def test_run_processes_all_events(self, sample_events, sample_context):
+    def test_run_processes_all_events(self, sample_events, sample_context, mock_position_manager, mock_trade_logger):
         """Test that loop processes all events and returns correct count."""
         callback_calls = []
         
         def callback(event, context):
             callback_calls.append((event, context))
         
-        result = ExecutionLoop.run(sample_events, [callback], sample_context)
+        result = ExecutionLoop.run(
+            sample_events, 
+            [callback], 
+            [],  # signal_callbacks
+            sample_context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         assert result.events_processed == len(sample_events)
         assert len(callback_calls) == len(sample_events)
         assert result.duration_seconds > 0
     
-    def test_run_context_current_bar_index(self, sample_events, sample_context):
+    def test_run_context_current_bar_index(self, sample_events, sample_context, mock_position_manager, mock_trade_logger):
         """Test that current_bar_index increments correctly."""
         indices = []
         
         def callback(event, context):
             indices.append(context.current_bar_index)
         
-        ExecutionLoop.run(sample_events, [callback], sample_context)
+        ExecutionLoop.run(
+            sample_events, 
+            [callback], 
+            [],  # signal_callbacks
+            sample_context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         assert indices == list(range(len(sample_events)))
     
@@ -125,6 +156,8 @@ class TestExecutionLoop:
         self,
         sample_events,
         sample_context,
+        mock_position_manager,
+        mock_trade_logger,
     ):
         """
         Critical regression test: 5min candle at 09:20 fires AFTER 09:19 1min bar.
@@ -137,7 +170,15 @@ class TestExecutionLoop:
         def callback(event, context):
             processed_order.append((event.timestamp, event.timeframe))
         
-        ExecutionLoop.run(sample_events, [callback], sample_context)
+        ExecutionLoop.run(
+            sample_events, 
+            [callback], 
+            [],  # signal_callbacks
+            sample_context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         # Find the 5min event at 09:20
         five_min_0920 = None
@@ -162,6 +203,8 @@ class TestExecutionLoop:
         self,
         sample_events,
         sample_context,
+        mock_position_manager,
+        mock_trade_logger,
     ):
         """
         Test that 5min callback at 09:20 never has access to 09:20 1min bar data.
@@ -175,7 +218,15 @@ class TestExecutionLoop:
             if event.timeframe == Interval.MINUTE_5:
                 seen_ohlc_in_5min.append(event.ohlc.close)
         
-        ExecutionLoop.run(sample_events, [callback], sample_context)
+        ExecutionLoop.run(
+            sample_events, 
+            [callback], 
+            [],  # signal_callbacks
+            sample_context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         # The 5min candles should only see data up to their boundary
         # First 5min (09:15-09:19) closes at 09:20, close = 09:19 close
@@ -189,6 +240,8 @@ class TestExecutionLoop:
         self,
         sample_events,
         sample_context,
+        mock_position_manager,
+        mock_trade_logger,
     ):
         """Test that all registered callbacks are invoked for each event."""
         call_counts = [0, 0, 0]
@@ -200,7 +253,15 @@ class TestExecutionLoop:
         
         callbacks = [make_callback(i) for i in range(3)]
         
-        ExecutionLoop.run(sample_events, callbacks, sample_context)
+        ExecutionLoop.run(
+            sample_events, 
+            callbacks, 
+            [],  # signal_callbacks
+            sample_context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         for count in call_counts:
             assert count == len(sample_events)
@@ -209,6 +270,8 @@ class TestExecutionLoop:
         self,
         sample_events,
         sample_context,
+        mock_position_manager,
+        mock_trade_logger,
     ):
         """Test that callback exceptions propagate (fail-fast)."""
         def failing_callback(event, context):
@@ -216,11 +279,27 @@ class TestExecutionLoop:
                 raise ValueError("Intentional test error")
         
         with pytest.raises(ValueError, match="Intentional test error"):
-            ExecutionLoop.run(sample_events, [failing_callback], sample_context)
+            ExecutionLoop.run(
+                sample_events, 
+                [failing_callback], 
+                [],  # signal_callbacks
+                sample_context,
+                mock_position_manager,
+                mock_trade_logger,
+                Interval.MINUTE_1,
+            )
     
-    def test_run_empty_events_returns_zero(self, sample_context):
+    def test_run_empty_events_returns_zero(self, sample_context, mock_position_manager, mock_trade_logger):
         """Test that empty event list returns zero result."""
-        result = ExecutionLoop.run([], [], sample_context)
+        result = ExecutionLoop.run(
+            [], 
+            [], 
+            [],  # signal_callbacks
+            sample_context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         assert result.events_processed == 0
         assert result.duration_seconds == 0.0
@@ -229,9 +308,19 @@ class TestExecutionLoop:
         self,
         sample_events,
         sample_context,
+        mock_position_manager,
+        mock_trade_logger,
     ):
         """Test that running with no callbacks completes (warning logged to stderr)."""
-        result = ExecutionLoop.run(sample_events, [], sample_context)
+        result = ExecutionLoop.run(
+            sample_events, 
+            [], 
+            [],  # signal_callbacks
+            sample_context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         assert result.events_processed == len(sample_events)
         # Warning is logged to stderr via loguru (not captured by capsys)
@@ -241,6 +330,8 @@ class TestExecutionLoop:
         self,
         sample_events,
         sample_context,
+        mock_position_manager,
+        mock_trade_logger,
     ):
         """Test that loop uses virtual time (event.timestamp) not wall-clock."""
         timestamps_seen = []
@@ -248,7 +339,15 @@ class TestExecutionLoop:
         def callback(event, context):
             timestamps_seen.append(event.timestamp)
         
-        ExecutionLoop.run(sample_events, [callback], sample_context)
+        ExecutionLoop.run(
+            sample_events, 
+            [callback], 
+            [],  # signal_callbacks
+            sample_context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         # Timestamps should match event timestamps exactly (virtual clock)
         expected_timestamps = [e.timestamp for e in sample_events]
@@ -258,9 +357,19 @@ class TestExecutionLoop:
         self,
         sample_events,
         sample_context,
+        mock_position_manager,
+        mock_trade_logger,
     ):
         """Test that BacktestResult contains correct fields."""
-        result = ExecutionLoop.run(sample_events, [], sample_context)
+        result = ExecutionLoop.run(
+            sample_events, 
+            [], 
+            [],  # signal_callbacks
+            sample_context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         assert isinstance(result.events_processed, int)
         assert isinstance(result.duration_seconds, float)
@@ -271,15 +380,25 @@ class TestExecutionLoop:
         self,
         sample_events,
         sample_context,
+        mock_position_manager,
+        mock_trade_logger,
     ):
         """Test that bars/second is logged at completion (to stderr via loguru)."""
-        ExecutionLoop.run(sample_events, [], sample_context)
+        ExecutionLoop.run(
+            sample_events, 
+            [], 
+            [],  # signal_callbacks
+            sample_context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         # Completion log goes to stderr via loguru (not captured by capsys in this env)
         # Just verify it completes without error
     
     @pytest.mark.parametrize("num_events", [1, 10, 100, 1000])
-    def test_run_scales_linearly(self, num_events, sample_context):
+    def test_run_scales_linearly(self, num_events, sample_context, mock_position_manager, mock_trade_logger):
         """Test that loop handles various event counts correctly."""
         # Create events
         events = []
@@ -317,7 +436,15 @@ class TestExecutionLoop:
             progress_pct=0.0,
         )
         
-        result = ExecutionLoop.run(events, [], context)
+        result = ExecutionLoop.run(
+            events, 
+            [], 
+            [],  # signal_callbacks
+            context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         assert result.events_processed == num_events
     
@@ -325,6 +452,8 @@ class TestExecutionLoop:
         self,
         sample_events,
         sample_context,
+        mock_position_manager,
+        mock_trade_logger,
     ):
         """Test that context is properly replaced (not mutated) each iteration."""
         contexts_seen = []
@@ -332,17 +461,32 @@ class TestExecutionLoop:
         def callback(event, context):
             contexts_seen.append(context)
         
-        ExecutionLoop.run(sample_events, [callback], sample_context)
+        ExecutionLoop.run(
+            sample_events, 
+            [callback], 
+            [],  # signal_callbacks
+            sample_context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
-        # Each event should have a different context object (frozen dataclass replaced)
-        for i in range(1, len(contexts_seen)):
-            assert contexts_seen[i] is not contexts_seen[i - 1]
-            assert contexts_seen[i].current_bar_index == i
+        # Context is now mutated in-place for hot-path efficiency
+        # All callbacks receive the same context object with updated progress
+        assert len(contexts_seen) == len(sample_events)
+        # All entries should be the same object (mutated in-place)
+        for ctx in contexts_seen:
+            assert ctx is sample_context
+        # Final progress should be 100%
+        assert sample_context.current_bar_index == len(sample_events) - 1
+        assert sample_context.progress_pct == 100.0
     
     def test_run_preserves_event_order_across_timeframes(
         self,
         sample_events,
         sample_context,
+        mock_position_manager,
+        mock_trade_logger,
     ):
         """Test that event order respects timestamp then priority."""
         order = []
@@ -350,7 +494,15 @@ class TestExecutionLoop:
         def callback(event, context):
             order.append((event.timestamp, event.timeframe))
         
-        ExecutionLoop.run(sample_events, [callback], sample_context)
+        ExecutionLoop.run(
+            sample_events, 
+            [callback], 
+            [],  # signal_callbacks
+            sample_context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         # Verify sorted by timestamp
         timestamps = [ts for ts, _ in order]
@@ -368,7 +520,7 @@ class TestExecutionLoop:
 class TestExecutionLoopEdgeCases:
     """Edge case tests for ExecutionLoop."""
     
-    def test_run_single_event(self):
+    def test_run_single_event(self, mock_position_manager, mock_trade_logger):
         """Test loop with exactly one event."""
         event = CandleEvent(
             timestamp=datetime(2024, 1, 1, 9, 15, tzinfo=IST),
@@ -403,7 +555,15 @@ class TestExecutionLoopEdgeCases:
         def callback(e, c):
             calls.append((e, c))
         
-        result = ExecutionLoop.run([event], [callback], context)
+        result = ExecutionLoop.run(
+            [event], 
+            [callback], 
+            [],  # signal_callbacks
+            context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         assert result.events_processed == 1
         assert len(calls) == 1
@@ -414,6 +574,8 @@ class TestExecutionLoopEdgeCases:
         self,
         sample_events,
         sample_context,
+        mock_position_manager,
+        mock_trade_logger,
     ):
         """Test that callback cannot mutate the loop's context."""
         def callback(event, context):
@@ -423,6 +585,14 @@ class TestExecutionLoopEdgeCases:
             except Exception:
                 pass  # Expected for frozen dataclass
         
-        result = ExecutionLoop.run(sample_events, [callback], sample_context)
+        result = ExecutionLoop.run(
+            sample_events, 
+            [callback], 
+            [],  # signal_callbacks
+            sample_context,
+            mock_position_manager,
+            mock_trade_logger,
+            Interval.MINUTE_1,
+        )
         
         assert result.events_processed == len(sample_events)

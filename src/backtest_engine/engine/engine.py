@@ -9,7 +9,11 @@ Hides feeder, ingestor, and loop internals. Provides fluent API:
 
 from typing import TYPE_CHECKING
 
-from backtest_engine.engine.defaults import create_default_feeder
+from backtest_engine.engine.defaults import (
+    create_default_feeder,
+    create_default_position_manager,
+    create_default_trade_logger,
+)
 from backtest_engine.engine.ingestor import DataIngestor
 from backtest_engine.engine.interfaces import (
     BacktestConfig,
@@ -18,8 +22,12 @@ from backtest_engine.engine.interfaces import (
     CandleCallback,
     CandleEvent,
     DataFeeder,
+    SignalCallback,
+    TargetQuantity,
 )
 from backtest_engine.engine.loop import ExecutionLoop
+from backtest_engine.engine.position_manager import PositionManager
+from backtest_engine.engine.trade_logger import TradeLogger
 
 if TYPE_CHECKING:
     from backtest_engine.engine.ingestor import DataIngestor
@@ -33,6 +41,8 @@ class BacktestEngine:
     - DataFeeder (async, cached, chunked, retried)
     - DataIngestor (validate, normalize, preprocess, resample, merge)
     - ExecutionLoop (deterministic, sync, virtual-time)
+    - PositionManager (hedging positions, exit evaluation, query API)
+    - TradeLogger (unique run directories, CSV trade logs, equity curve)
     
     Usage:
         config = BacktestConfig(...)
@@ -53,11 +63,16 @@ class BacktestEngine:
         """
         self._config = config
         self._callbacks: list[CandleCallback] = []
+        self._signal_callbacks: list[SignalCallback] = []
         self._feeder: DataFeeder | None = None
         self._ingestor: DataIngestor | None = None
         self._events: list[CandleEvent] | None = None
         self._result: BacktestResult | None = None
         self._prepared = False
+        
+        # Position management
+        self._position_manager: PositionManager | None = None
+        self._trade_logger: TradeLogger | None = None
     
     def on_ohlc_candle(self, callback: CandleCallback) -> "BacktestEngine":
         """
@@ -75,10 +90,33 @@ class BacktestEngine:
         self._callbacks.append(callback)
         return self
     
+    def on_signal(self, callback: SignalCallback) -> "BacktestEngine":
+        """
+        Register a signal callback that returns target quantities.
+        
+        Signal callbacks are invoked on BASE timeframe events and return
+        a TargetQuantity dict of {symbol: target_quantity} where:
+        - positive = long target
+        - negative = short target
+        - 0/absent = flat
+        
+        Fluent API — returns self for chaining.
+        
+        Args:
+            callback: Function accepting CandleEvent and BacktestContext, returning TargetQuantity
+            
+        Returns:
+            Self for method chaining
+        """
+        self._signal_callbacks.append(callback)
+        return self
+    
     async def prepare(
         self,
         feeder: DataFeeder | None = None,
         ingestor: "DataIngestor | None" = None,
+        position_manager: PositionManager | None = None,
+        trade_logger: TradeLogger | None = None,
     ) -> "BacktestEngine":
         """
         Async preparation phase: fetch, validate, normalize, preprocess, resample, merge.
@@ -89,6 +127,8 @@ class BacktestEngine:
         Args:
             feeder: Optional custom DataFeeder (default: ParquetDataFeeder via factory)
             ingestor: Optional custom DataIngestor (default: new instance)
+            position_manager: Optional custom PositionManager (default: factory)
+            trade_logger: Optional custom TradeLogger (default: factory)
             
         Returns:
             Self for chaining
@@ -105,17 +145,25 @@ class BacktestEngine:
         self._events = await self._ingestor.ingest(self._feeder, self._config)
         self._prepared = True
         
+        # Initialize position manager and trade logger
+        self._position_manager = position_manager or create_default_position_manager()
+        self._trade_logger = trade_logger or create_default_trade_logger(
+            base_dir="backtest_results",
+            strategy_name=self._config.symbol,
+            initial_cash=self._position_manager.initial_cash
+        )
+        
         return self
     
     def run(self) -> BacktestResult:
         """
-        Execute the deterministic sync loop over prepared events.
+        Execute the deterministic sync loop over prepared events with position management.
         
         Must call prepare() first. This method is synchronous, single-threaded,
         and fully deterministic — same input always produces same callback sequence.
         
         Returns:
-            BacktestResult with events_processed and duration_seconds
+            BacktestResult with events_processed, duration_seconds, and trade logging paths
             
         Raises:
             RuntimeError: If prepare() not called first
@@ -138,10 +186,21 @@ class BacktestEngine:
             total_bars=len(self._events),
             current_bar_index=0,
             progress_pct=0.0,
+            position_manager=self._position_manager,
+            trade_logger=self._trade_logger,
+            current_prices={},
         )
         
-        # Execute deterministic loop
-        self._result = ExecutionLoop.run(self._events, self._callbacks, context)
+        # Execute deterministic loop with position management
+        self._result = ExecutionLoop.run(
+            self._events, 
+            self._callbacks, 
+            self._signal_callbacks,
+            context,
+            self._position_manager,
+            self._trade_logger,
+            self._config.base_interval,
+        )
         
         return self._result
     
@@ -159,6 +218,16 @@ class BacktestEngine:
     def events(self) -> list[CandleEvent] | None:
         """Get the prepared events (after prepare(), before/after run())."""
         return self._events
+    
+    @property
+    def position_manager(self) -> PositionManager | None:
+        """Get the position manager (after prepare())."""
+        return self._position_manager
+    
+    @property
+    def trade_logger(self) -> TradeLogger | None:
+        """Get the trade logger (after prepare())."""
+        return self._trade_logger
     
     async def close(self) -> None:
         """Clean up resources (close feeder connections)."""
@@ -180,6 +249,8 @@ async def run_backtest(
     config: BacktestConfig,
     *callbacks: CandleCallback,
     feeder: DataFeeder | None = None,
+    position_manager: PositionManager | None = None,
+    trade_logger: TradeLogger | None = None,
 ) -> BacktestResult:
     """
     One-liner convenience function for researchers.
@@ -190,6 +261,8 @@ async def run_backtest(
         config: BacktestConfig with all parameters
         *callbacks: One or more callback functions for closed candle events
         feeder: Optional custom DataFeeder
+        position_manager: Optional custom PositionManager
+        trade_logger: Optional custom TradeLogger
         
     Returns:
         BacktestResult after execution completes

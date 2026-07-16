@@ -135,15 +135,29 @@ class TestBacktestEngine:
             engine._prepared = True
             engine.on_ohlc_candle(lambda e, c: None)
             
+            # Manually set position_manager and trade_logger since we're not calling prepare()
+            from backtest_engine.engine.position_manager import PositionManager
+            from backtest_engine.engine.trade_logger import TradeLogger
+            engine._position_manager = PositionManager()
+            engine._trade_logger = TradeLogger(
+                base_dir="/tmp",
+                strategy_name="test",
+                initial_cash=1_000_000.0,
+            )
+            
             result = engine.run()
             
-            # Verify loop was called with events, callbacks, context
+            # Verify loop was called with events, callbacks, signal_callbacks, context, position_manager, trade_logger, base_interval
             mock_loop_class.run.assert_called_once()
             call_args = mock_loop_class.run.call_args
-            # call_args[0] is positional args tuple: (events, callbacks, context)
+            # call_args[0] is positional args tuple
             assert call_args[0][0] == sample_events
             assert len(call_args[0][1]) == 1
-            assert call_args[0][2].total_bars == 10
+            assert len(call_args[0][2]) == 0  # signal_callbacks
+            assert call_args[0][3].total_bars == 10
+            assert call_args[0][4] is not None  # position_manager
+            assert call_args[0][5] is not None  # trade_logger
+            assert call_args[0][6] == sample_config.base_interval
             
             assert result == mock_result
             assert engine.result == mock_result

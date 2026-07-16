@@ -5,7 +5,7 @@ This module defines the contracts that all engine components must adhere to.
 Researchers interact only with BacktestConfig, CandleEvent, and CandleCallback.
 """
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, replace, field
 from datetime import datetime
 from typing import Callable, Optional, Protocol, TYPE_CHECKING, runtime_checkable
 
@@ -21,6 +21,8 @@ from backtest_engine.data_provider.interfaces.models import (
 if TYPE_CHECKING:
     from backtest_engine.engine.feeder import DataFeeder
     from backtest_engine.engine.ingestor import Preprocessor
+    from backtest_engine.engine.position_manager import PositionManager
+    from backtest_engine.engine.trade_logger import TradeLogger
 
 
 # =============================================================================
@@ -78,12 +80,14 @@ type CandleCallback = Callable[["CandleEvent", "BacktestContext"], None]
 # Run Context
 # =============================================================================
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class BacktestContext:
     """
     Runtime context passed to every callback invocation.
     
     Includes progress tracking (total_bars known upfront from merged event list).
+    Hot-path fields (current_bar_index, progress_pct, current_prices) are mutable
+    to avoid allocation on every bar in the execution loop.
     """
     symbol: str
     exchange: Exchange
@@ -91,16 +95,18 @@ class BacktestContext:
     base_interval: Interval
     timeframes: list[Interval]
     total_bars: int                  # KNOWN UPFRONT from merged event list
-    current_bar_index: int
-    progress_pct: float
+    current_bar_index: int = 0
+    progress_pct: float = 0.0
     
-    def with_progress(self, current_bar_index: int) -> "BacktestContext":
-        """Return a new context with updated progress (1-based)."""
-        return replace(
-            self,
-            current_bar_index=current_bar_index,
-            progress_pct=(current_bar_index + 1) / self.total_bars * 100 if self.total_bars > 0 else 0.0,
-        )
+    # Position management (added by engine)
+    position_manager: "PositionManager" = field(default=None, repr=False)
+    trade_logger: "TradeLogger" = field(default=None, repr=False)
+    current_prices: dict[str, float] = field(default_factory=dict, repr=False)
+    
+    def update_progress(self, current_bar_index: int) -> None:
+        """Update progress in-place (mutates for hot-path efficiency)."""
+        self.current_bar_index = current_bar_index
+        self.progress_pct = (current_bar_index + 1) / self.total_bars * 100 if self.total_bars > 0 else 0.0
 
 
 # =============================================================================
@@ -112,6 +118,12 @@ class BacktestResult:
     """Result returned after a backtest run completes."""
     events_processed: int
     duration_seconds: float
+    
+    # Trade logging results
+    trade_log_path: Optional[str] = None
+    equity_curve_path: Optional[str] = None
+    run_dir: Optional[str] = None
+    summary_stats: Optional[dict] = None
 
 
 # =============================================================================
@@ -142,3 +154,31 @@ class Preprocessor(Protocol):
     Default: no-op identity function (pass-through).
     """
     def process(self, base_df: pl.DataFrame) -> pl.DataFrame: ...
+
+
+# =============================================================================
+# Position Management Protocols
+# =============================================================================
+
+@runtime_checkable
+class PositionManagerProtocol(Protocol):
+    """
+    Protocol for position management.
+    
+    Allows different implementations (backtest, paper, live) with same interface.
+    """
+    def get_positions(self, symbol: Optional[str] = None) -> list["Position"]: ...
+    def get_unrealized_pnl(self, symbol: Optional[str] = None) -> float: ...
+    def get_realized_pnl(self, symbol: Optional[str] = None) -> float: ...
+    def get_equity(self) -> float: ...
+    def get_trade_log(self) -> list["TradeRecord"]: ...
+    def get_equity_curve(self) -> list["EquityPoint"]: ...
+
+
+# Type alias for researcher signal callback
+# Returns dict of {symbol: target_quantity} where:
+#   positive = long target, negative = short target, 0/absent = flat
+type TargetQuantity = dict[str, float]
+
+# Type alias for signal callback - returns target quantities per symbol
+type SignalCallback = Callable[["CandleEvent", "BacktestContext"], TargetQuantity]

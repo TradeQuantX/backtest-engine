@@ -14,6 +14,13 @@ from backtest_engine.engine.interfaces import (
     DataFeeder,
     Preprocessor,
 )
+from backtest_engine.engine.position import (
+    Position,
+    PositionSide,
+    PositionRequest,
+    TradeRecord,
+    EquityPoint,
+)
 
 __all__ = [
     # Engine
@@ -30,6 +37,12 @@ __all__ = [
     # Protocols
     "DataFeeder",
     "Preprocessor",
+    # Position Management
+    "Position",
+    "PositionSide",
+    "PositionRequest",
+    "TradeRecord",
+    "EquityPoint",
 ]
 
 __version__ = "0.1.0"
