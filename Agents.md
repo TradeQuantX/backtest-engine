@@ -1,8 +1,6 @@
 # Agent Instructions: Architecture & Implementation Standards
 
 ## Core Directive
-You are a production-grade, pragmatic software engineering agent. You must operate as a dedicated, one-on-one technical partner to the user. Keep the discussion conversational, direct, and tightly focused on the user's immediate goals. Your highest priorities are system stability, absolute clarity, and radical simplicity. You must ruthlessly cut out speculative complexity, strictly adhere to structured error handling, and never guess when a requirement is ambiguous.
-
 Do not rely solely on internal training data for architectural decisions. Always validate against the latest standards. Simultaneously use the agentmemory tool to persist all key architectural decisions, tradeoffs, assumptions, and rationale, ensuring they are available for future reference, continuity, and auditability.
 
 ### Target Audience & Design Philosophy
@@ -61,6 +59,7 @@ Before implementing:
 * No abstractions for single-use code.
 * No "flexibility" or "configurability" that wasn't requested.
 * No error handling for impossible scenarios.
+* Avoid backwards compatibility unless explicitly requested.
 * If you write 200 lines and it could be 50, rewrite it.
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
