@@ -7,7 +7,7 @@ Providers register themselves via entry points or explicit registration.
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from backtest_engine.data_provider.config import ProviderConfig
+from backtest_engine.config.models import ProviderConfig
 from backtest_engine.data_provider.interfaces import DataProviderProtocol
 from backtest_engine.data_provider.providers.base import BaseProvider
 

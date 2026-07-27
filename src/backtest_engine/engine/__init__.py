@@ -4,9 +4,10 @@ TradeQuantX Backtest Engine — Execution Loop Package
 A minimal, deterministic, event-driven backtesting framework for quantitative research.
 """
 
+from backtest_engine.config import load_backtest_config, load_engine_config
+from backtest_engine.config.models import BacktestConfig, EngineConfig
 from backtest_engine.engine.engine import BacktestEngine, run_backtest
 from backtest_engine.engine.interfaces import (
-    BacktestConfig,
     BacktestContext,
     BacktestResult,
     CandleCallback,
@@ -26,8 +27,11 @@ __all__ = [
     # Engine
     "BacktestEngine",
     "run_backtest",
-    # Config
+    # Config (new unified config)
+    "load_backtest_config",
+    "load_engine_config",
     "BacktestConfig",
+    "EngineConfig",
     # Events & Callbacks
     "CandleEvent",
     "CandleCallback",

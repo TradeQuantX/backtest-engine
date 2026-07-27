@@ -9,8 +9,9 @@ historical market data from different providers.
 import asyncio
 from datetime import datetime
 
+from backtest_engine.config import load_data_provider_config
 from backtest_engine.data_provider import DataProviderClient
-from backtest_engine.data_provider.interfaces.models import (
+from backtest_engine.shared.types import (
     Exchange,
     Segment,
     Interval,
@@ -19,8 +20,11 @@ from backtest_engine.data_provider.interfaces.models import (
 
 async def main():
     """Main example function."""
-    # Initialize client (loads config from ./config.yml, ~/.tradex/config.yml, env vars)
-    client = DataProviderClient()
+    # Load config from config.yaml/.secrets.yaml (project + user)
+    config = load_data_provider_config()
+    
+    # Initialize client with loaded config
+    client = DataProviderClient(config=config)
     
     try:
         # Initialize (loads config, creates providers, authenticates)

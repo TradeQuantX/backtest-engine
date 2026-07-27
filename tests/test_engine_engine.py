@@ -6,14 +6,15 @@ import pytest
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from backtest_engine.data_provider.interfaces.models import (
+from backtest_engine.config.models import BacktestConfig
+from backtest_engine.shared.types import (
     Exchange,
     Interval,
-    NormalizedOHLC,
     Segment,
 )
+from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
 from backtest_engine.data_provider.utils import IST
-from backtest_engine.engine.interfaces import BacktestConfig, BacktestResult, CandleEvent, DataFeeder
+from backtest_engine.engine.interfaces import BacktestResult, CandleEvent, DataFeeder
 from backtest_engine.engine.engine import BacktestEngine, run_backtest
 
 

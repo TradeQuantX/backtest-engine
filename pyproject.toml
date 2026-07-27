@@ -14,8 +14,8 @@ dependencies = [
     "loguru>=0.7",
     "tenacity>=8.2",
     "cryptography>=42.0",
-    "python-dotenv>=1.0",
     "aiohttp>=3.9",
+    "dynaconf>=3.2",
 ]
 
 [project.optional-dependencies]
@@ -38,7 +38,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["Nuitka[build-wheel]", "toml"]
+requires = ["Nuitka[build-wheel]", "toml", "setuptools"]
 build-backend = "nuitka.distutils.Build"
 
 [tool.setuptools.package-data]

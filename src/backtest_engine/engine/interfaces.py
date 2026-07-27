@@ -11,12 +11,12 @@ from typing import Callable, Optional, Protocol, TYPE_CHECKING, runtime_checkabl
 
 import polars as pl
 
-from backtest_engine.data_provider.interfaces.models import (
+from backtest_engine.shared.types import (
     Exchange,
     Interval,
-    NormalizedOHLC,
     Segment,
 )
+from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
 
 if TYPE_CHECKING:
     from backtest_engine.engine.feeder import DataFeeder

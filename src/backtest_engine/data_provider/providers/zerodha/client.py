@@ -8,7 +8,7 @@ from typing import Optional
 
 import httpx
 
-from backtest_engine.data_provider.config import ZerodhaConfig
+from backtest_engine.config.models import ZerodhaConfig
 from backtest_engine.data_provider.exceptions import (
     AuthError,
     InstrumentNotFoundError,

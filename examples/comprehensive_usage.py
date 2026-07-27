@@ -14,7 +14,8 @@ from dataclasses import replace
 from datetime import datetime
 from typing import Optional
 
-from backtest_engine.data_provider.interfaces.models import Exchange, Interval, Segment
+from backtest_engine.config import load_backtest_config, load_engine_config
+from backtest_engine.shared.types import Exchange, Interval, Segment
 from backtest_engine.data_provider.utils import IST
 from backtest_engine.engine import (
     BacktestConfig,

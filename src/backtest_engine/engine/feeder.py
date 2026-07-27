@@ -9,8 +9,8 @@ from backtest_engine.data_provider.client import DataProviderClient
 from backtest_engine.engine.interfaces import (
     BacktestConfig,
     DataFeeder,
-    NormalizedOHLC,
 )
+from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
 
 
 class ParquetDataFeeder:

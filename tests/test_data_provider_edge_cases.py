@@ -49,13 +49,15 @@ from backtest_engine.data_provider.exceptions import (
     ProviderResponseError,
     InstrumentNotFoundError,
 )
-from backtest_engine.data_provider.interfaces.models import (
+from backtest_engine.shared.types import (
     Exchange,
     Segment,
     Interval,
+    InstrumentType,
+)
+from backtest_engine.data_provider.interfaces.models import (
     NormalizedOHLC,
     NormalizedInstrument,
-    InstrumentType,
 )
 
 

@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 import httpx
 from aiohttp import web
 
-from backtest_engine.data_provider.config import ZerodhaConfig
+from backtest_engine.config.models import ZerodhaConfig
 from backtest_engine.data_provider.exceptions import (
     AuthError,
     OAuthFlowError,

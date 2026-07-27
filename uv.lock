@@ -141,13 +141,13 @@ source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "cryptography" },
+    { name = "dynaconf" },
     { name = "httpx" },
     { name = "loguru" },
     { name = "polars" },
     { name = "pyarrow" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
-    { name = "python-dotenv" },
     { name = "pyyaml" },
     { name = "tenacity" },
 ]
@@ -175,6 +175,7 @@ dev = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.9" },
     { name = "cryptography", specifier = ">=42.0" },
+    { name = "dynaconf", specifier = ">=3.2" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27" },
     { name = "loguru", specifier = ">=0.7" },
@@ -185,7 +186,6 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.12" },
-    { name = "python-dotenv", specifier = ">=1.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "respx", marker = "extra == 'dev'", specifier = ">=0.21" },
     { name = "tenacity", specifier = ">=8.2" },
@@ -341,6 +341,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/6c/a0/db537264e234f7273a73ec020873d6d6b39dfd8a53db78b550ca8320440e/cryptography-49.0.0-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:67e1d20ad9ef3a563c59ef22e7a8a0b8210bd26604369ea4a30a7c66aefe504e", size = 4834820, upload-time = "2026-06-12T20:01:51.847Z" },
     { url = "https://files.pythonhosted.org/packages/93/77/8df9eb486495979bccecd1062e2eaf435250e84437040295b57d09048b0b/cryptography-49.0.0-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:42b0684e0e40cf26122427802486f6d93aea593612603a94fbf260c7eb1e9c1b", size = 4967968, upload-time = "2026-06-12T20:02:12.524Z" },
     { url = "https://files.pythonhosted.org/packages/c2/e6/f60198ea8d9dfa15fff9ed4ca02ce362f6eadd9ba757dcc50634c4257b63/cryptography-49.0.0-cp39-abi3-win_amd64.whl", hash = "sha256:026ac7423e6fa66872d3bf889be5974507da3944f866f704fa200eadacd00001", size = 3785547, upload-time = "2026-06-12T20:02:26.847Z" },
+]
+
+[[package]]
+name = "dynaconf"
+version = "3.3.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/8e/79e2ab9718fa632b764ca08cf7321690819a01fad523e2b70cbd5591e99c/dynaconf-3.3.3.tar.gz", hash = "sha256:1740ca23ff9da042531f507f664cb5b79b0e5120b65f98b74e1387491b6d078a", size = 328391, upload-time = "2026-07-22T21:26:55.135Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/f3/8ddb29d4f710d3b2f67ed289f3c108ca10a4d3ed7574a424fe6a5c0295a3/dynaconf-3.3.3-py3-none-any.whl", hash = "sha256:1fc189416e7ddadc0c3bbebad8390d15219a68bb07d24d051478233f08f272a6", size = 270319, upload-time = "2026-07-22T21:26:53.511Z" },
 ]
 
 [[package]]

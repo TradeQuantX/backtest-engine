@@ -8,7 +8,8 @@ Run with: uv run python examples/run_backtest_example.py
 import asyncio
 from datetime import datetime
 
-from backtest_engine.data_provider.interfaces.models import Exchange, Interval, Segment
+from backtest_engine.config import load_backtest_config
+from backtest_engine.shared.types import Exchange, Interval, Segment
 from backtest_engine.data_provider.utils import IST
 from backtest_engine.engine import BacktestConfig, run_backtest
 
@@ -30,20 +31,8 @@ async def main():
                 f"L={ohlc.low:>8.2f} C={ohlc.close:>8.2f} V={ohlc.volume:>10}"
             )
     
-    config = BacktestConfig(
-        symbol="RELIANCE",
-        exchange=Exchange.NSE,
-        segment=Segment.EQ,
-        base_interval=Interval.MINUTE_1,
-        timeframes=[
-            Interval.MINUTE_1,
-            Interval.MINUTE_5,
-            Interval.MINUTE_15,
-            Interval.DAY,
-        ],
-        from_date=datetime(2024, 1, 1, tzinfo=IST),
-        to_date=datetime(2024, 1, 5, tzinfo=IST),  # 5 days for quick test
-    )
+    # Load config from config.yaml/.secrets.yaml
+    config = load_backtest_config()
     
     print("Running backtest...")
     print(f"Symbol: {config.symbol} | Exchange: {config.exchange.value} | Segment: {config.segment.value}")

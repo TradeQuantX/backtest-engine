@@ -20,14 +20,6 @@ Usage:
 """
 
 from backtest_engine.data_provider.client import DataProviderClient, get_historical_data
-from backtest_engine.data_provider.config import (
-    ConfigLoader,
-    DataProviderConfig,
-    DhanConfig,
-    ProviderConfig,
-    ZerodhaConfig,
-    load_config,
-)
 from backtest_engine.data_provider.exceptions import (
     DataProviderError,
     ConfigurationError,
@@ -45,7 +37,7 @@ from backtest_engine.data_provider.interfaces import (
     NormalizedOHLC,
     StorageProtocol,
 )
-from backtest_engine.data_provider.interfaces.models import (
+from backtest_engine.shared.types import (
     Exchange,
     Segment,
     Interval,
@@ -56,13 +48,6 @@ __all__ = [
     # Client
     "DataProviderClient",
     "get_historical_data",
-    # Config
-    "ConfigLoader",
-    "load_config",
-    "DataProviderConfig",
-    "ProviderConfig",
-    "ZerodhaConfig",
-    "DhanConfig",
     # Exceptions
     "DataProviderError",
     "ConfigurationError",

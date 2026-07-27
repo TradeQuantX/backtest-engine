@@ -1,0 +1,86 @@
+# config.yaml
+# Project configuration - commit to git
+
+log_level: "INFO"
+data_dir: "~/.tradex/data"
+cache_dir: "~/.tradex/cache"
+
+data_provider:
+  default_provider: "zerodha"
+  cache_enabled: true
+  cache_ttl_seconds: 3600
+  instrument_cache_ttl_seconds: 86400
+  storage_compression: "zstd"
+  storage_partition_by: "month"
+  storage_row_group_size: 1000000
+  max_retries: 3
+  retry_base_delay: 1.0
+  retry_max_delay: 60.0
+  retry_exponential_base: 2.0
+  chunk_size_days:
+    minute: 30
+    "3minute": 60
+    "5minute": 90
+    "15minute": 180
+    "30minute": 360
+    "60minute": 720
+    day: 2000
+  providers:
+    zerodha:
+      type: "zerodha"
+      enabled: false
+      priority: 10
+      api_key: ""
+      api_secret: ""
+      access_token: ""
+      redirect_url: "http://localhost:8080/callback"
+      totp_secret: ""
+      token_file: "~/.tradex/tokens/zerodha.json"
+      rate_limit_per_second: 3.0
+      rate_limit_per_minute: 100
+      rate_limit_per_day: 10000
+      base_url: "https://api.kite.trade"
+      connect_timeout: 10.0
+      read_timeout: 30.0
+    dhan:
+      type: "dhan"
+      enabled: false
+      priority: 20
+      api_key: ""
+      api_secret: ""
+      client_id: ""
+      access_token: ""
+      static_ip: ""
+      token_file: "~/.tradex/tokens/dhan.json"
+      rate_limit_per_second: 5.0
+      rate_limit_per_minute: 250
+      rate_limit_per_day: 7000
+      base_url: "https://api.dhan.co"
+      sandbox: false
+      connect_timeout: 10.0
+      read_timeout: 30.0
+
+backtest:
+  symbol: "RELIANCE"
+  exchange: "NSE"
+  segment: "EQ"
+  base_interval: "1minute"
+  timeframes: ["1minute", "5minute", "15minute", "day"]
+  from_date: "2024-01-01T09:15:00+05:30"
+  to_date: "2024-01-31T15:30:00+05:30"
+  strict_validation: true
+
+engine:
+  position_manager:
+    initial_cash: 1000000.0
+    commission_per_share: 0.0
+    commission_pct: 0.0
+    slippage_pct: 0.0
+  trade_logger:
+    base_dir: "backtest_results"
+    strategy_name: "default"
+    output_format: "csv"
+  data_feeder:
+    cache_ttl_seconds: 3600
+    chunk_size_days: 30
+    provider_override: null

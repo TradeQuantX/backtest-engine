@@ -6,54 +6,15 @@ All providers must normalize their data to these models before returning.
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
 from typing import Optional
 
-
-class Exchange(str, Enum):
-    """Supported exchanges."""
-    NSE = "NSE"
-    BSE = "BSE"
-    MCX = "MCX"
-    NFO = "NFO"
-    BFO = "BFO"
-    CDS = "CDS"
-    BCD = "BCD"
-    MF = "MF"
-
-
-class Segment(str, Enum):
-    """Market segments."""
-    EQ = "EQ"      # Equity
-    FO = "FO"      # Futures & Options
-    CDS = "CDS"    # Currency Derivatives
-    MCX = "MCX"    # Commodity
-    MF = "MF"      # Mutual Funds
-
-
-class Interval(str, Enum):
-    """Supported time intervals."""
-    MINUTE_1 = "1minute"
-    MINUTE_3 = "3minute"
-    MINUTE_5 = "5minute"
-    MINUTE_10 = "10minute"
-    MINUTE_15 = "15minute"
-    MINUTE_30 = "30minute"
-    MINUTE_60 = "60minute"
-    DAY = "day"
-    WEEK = "week"
-    MONTH = "month"
-
-
-class InstrumentType(str, Enum):
-    """Instrument types."""
-    EQ = "EQ"
-    FUT = "FUT"
-    OPT = "OPT"
-    IDX = "IDX"
-    CUR = "CUR"
-    COM = "COM"
-    MF = "MF"
+from backtest_engine.shared.types import (
+    Exchange,
+    Segment,
+    Interval,
+    InstrumentType,
+    IST,
+)
 
 
 @dataclass(frozen=True, slots=True)

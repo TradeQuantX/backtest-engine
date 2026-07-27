@@ -52,6 +52,10 @@ coverage.xml
 .pytest_cache/
 cover/
 
+# Secrets
+.secrets.yaml
+~/.tradex/.secrets.yaml
+
 # Translations
 *.mo
 *.pot

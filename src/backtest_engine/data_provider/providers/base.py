@@ -11,7 +11,7 @@ from typing import Optional
 
 import polars as pl
 
-from backtest_engine.data_provider.config import DataProviderConfig, ProviderConfig
+from backtest_engine.config.models import DataProviderConfig, ProviderConfig
 from backtest_engine.data_provider.exceptions import (
     DataNotFoundError,
     InstrumentNotFoundError,

@@ -9,6 +9,8 @@ Hides feeder, ingestor, and loop internals. Provides fluent API:
 
 from typing import TYPE_CHECKING
 
+from backtest_engine.config import load_backtest_config, load_engine_config
+from backtest_engine.config.models import BacktestConfig, EngineConfig
 from backtest_engine.engine.defaults import (
     create_default_feeder,
     create_default_position_manager,
@@ -16,7 +18,6 @@ from backtest_engine.engine.defaults import (
 )
 from backtest_engine.engine.ingestor import DataIngestor
 from backtest_engine.engine.interfaces import (
-    BacktestConfig,
     BacktestContext,
     BacktestResult,
     CandleCallback,
@@ -54,14 +55,19 @@ class BacktestEngine:
         result = await run_backtest(config, my_callback)
     """
     
-    def __init__(self, config: BacktestConfig):
+    def __init__(self, config: BacktestConfig | EngineConfig):
         """
         Initialize the engine with a configuration.
         
         Args:
-            config: BacktestConfig with all parameters (symbol, dates, timeframes, etc.)
+            config: BacktestConfig or EngineConfig with all parameters
         """
-        self._config = config
+        if isinstance(config, EngineConfig):
+            self._config = config.backtest
+            self._engine_config = config
+        else:
+            self._config = config
+            self._engine_config = EngineConfig(backtest=config)
         self._callbacks: list[CandleCallback] = []
         self._signal_callbacks: list[SignalCallback] = []
         self._feeder: DataFeeder | None = None
@@ -145,11 +151,19 @@ class BacktestEngine:
         self._events = await self._ingestor.ingest(self._feeder, self._config)
         self._prepared = True
         
-        # Initialize position manager and trade logger
-        self._position_manager = position_manager or create_default_position_manager()
+        # Initialize position manager and trade logger from engine config
+        pm_config = self._engine_config.position_manager
+        tl_config = self._engine_config.trade_logger
+        
+        self._position_manager = position_manager or create_default_position_manager(
+            initial_cash=pm_config.initial_cash,
+            commission_per_share=pm_config.commission_per_share,
+            commission_pct=pm_config.commission_pct,
+            slippage_pct=pm_config.slippage_pct,
+        )
         self._trade_logger = trade_logger or create_default_trade_logger(
-            base_dir="backtest_results",
-            strategy_name=self._config.symbol,
+            base_dir=tl_config.base_dir,
+            strategy_name=tl_config.strategy_name,
             initial_cash=self._position_manager.initial_cash
         )
         
@@ -246,7 +260,7 @@ class BacktestEngine:
 # =============================================================================
 
 async def run_backtest(
-    config: BacktestConfig,
+    config: BacktestConfig | EngineConfig,
     *callbacks: CandleCallback,
     feeder: DataFeeder | None = None,
     position_manager: PositionManager | None = None,
@@ -258,7 +272,7 @@ async def run_backtest(
     Combines engine creation, callback registration, preparation, and execution.
     
     Args:
-        config: BacktestConfig with all parameters
+        config: BacktestConfig or EngineConfig with all parameters
         *callbacks: One or more callback functions for closed candle events
         feeder: Optional custom DataFeeder
         position_manager: Optional custom PositionManager

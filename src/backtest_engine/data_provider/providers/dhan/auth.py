@@ -12,7 +12,7 @@ from typing import Optional
 
 import httpx
 
-from backtest_engine.data_provider.config import DhanConfig
+from backtest_engine.config.models import DhanConfig
 from backtest_engine.data_provider.exceptions import (
     AuthError,
 )

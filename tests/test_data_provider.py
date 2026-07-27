@@ -9,13 +9,15 @@ import pytest
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from backtest_engine.data_provider.interfaces.models import (
+from backtest_engine.shared.types import (
     Exchange,
     Segment,
     Interval,
+    InstrumentType,
+)
+from backtest_engine.data_provider.interfaces.models import (
     NormalizedOHLC,
     NormalizedInstrument,
-    InstrumentType,
 )
 from backtest_engine.data_provider.utils.normalization import (
     normalize_timestamp,

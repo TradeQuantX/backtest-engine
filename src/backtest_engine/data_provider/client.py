@@ -8,13 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from backtest_engine.data_provider.config import (
-    ConfigLoader,
-    DataProviderConfig,
-    DhanConfig,
-    ZerodhaConfig,
-    load_config,
-)
+from backtest_engine.config.models import DataProviderConfig
 from backtest_engine.data_provider.exceptions import (
     ConfigurationError,
     InvalidConfigurationError,
@@ -63,8 +57,6 @@ class DataProviderClient:
     def __init__(
         self,
         config: Optional[DataProviderConfig] = None,
-        project_config: Optional[Path] = None,
-        user_config: Optional[Path] = None,
         cache: Optional[CacheProtocol] = None,
         storage: Optional[StorageProtocol] = None,
     ):
@@ -72,15 +64,11 @@ class DataProviderClient:
         Initialize the data provider client.
         
         Args:
-            config: Pre-loaded configuration (optional)
-            project_config: Path to project config.yml
-            user_config: Path to user config.yml
+            config: Pre-loaded configuration (optional, loads from config.yaml/.secrets.yaml if not provided)
             cache: Cache implementation (optional)
             storage: Storage implementation (optional)
         """
         self._config = config
-        self._project_config = project_config
-        self._user_config = user_config
         self._cache = cache
         self._storage = storage
         self._providers: dict[str, BaseProvider] = {}
@@ -94,7 +82,7 @@ class DataProviderClient:
         
         # Load configuration
         if self._config is None:
-            self._config = load_config(self._project_config, self._user_config)
+            self._config = load_data_provider_config()
         
         # Create cache and storage if not provided
         if self._cache is None:

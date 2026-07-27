@@ -638,10 +638,10 @@ class BenchmarkContext:
         if self.use_wheel:
             # In wheel mode, imports work normally since wheel is installed
             from backtest_engine.data_provider import DataProviderClient
-            from backtest_engine.data_provider.config import ZerodhaConfig, DataProviderConfig
+            from backtest_engine.config.models import ZerodhaConfig, DataProviderConfig
         else:
             from backtest_engine.data_provider import DataProviderClient
-            from backtest_engine.data_provider.config import ZerodhaConfig, DataProviderConfig
+            from backtest_engine.config.models import ZerodhaConfig, DataProviderConfig
         
         # Create config with mock settings
         zerodha_config = ZerodhaConfig(
