@@ -8,6 +8,10 @@ This project is explicitly designed for **researchers with minimal Python knowle
 * **The Interface (Layman UX):** Must be radically simple, intuitive, and highly abstracted. The user should never need to understand the underlying mechanics, type systems, or memory management to use the framework effectively. 
 * **The Backend (Engine Room):** Must be exceptionally powerful, flexible, and performant. Hide all heavy lifting, complex logic, and system infrastructure behind clean, readable APIs.
 
+## **Memory Management**
+
+Always use the **agentmemory MCP tools** to retrieve relevant memories before starting work and to persist important architectural decisions, implementation rationale, tradeoffs, assumptions, and other long-term project knowledge after completing significant tasks.
+
 ## Environment & Build Standards
 To meet strict performance and maintainability requirements, you must enforce the following tooling stack:
 
@@ -78,3 +82,14 @@ When your changes create orphans:
 * Don't remove pre-existing dead code unless asked.
 
 The test: Every changed line should trace directly to the user's request.
+
+## Dependency Architecture
+
+* Eliminate circular dependencies through proper architecture; never use workarounds such as typing.TYPE_CHECKING, deferred imports, local imports, or lazy imports solely to break circular imports.
+* Prefer architectural separation, dependency inversion, shared core modules, and protocols/interfaces where appropriate.
+
+## Type Hinting
+
+* **Never** use string-based forward references.
+* Never use `from __future__ import annotations` solely to work around circular dependencies.
+* Structure modules so annotations resolve naturally without deferred evaluation.

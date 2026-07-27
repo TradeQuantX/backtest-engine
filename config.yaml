@@ -28,12 +28,12 @@ data_provider:
   providers:
     zerodha:
       type: "zerodha"
-      enabled: false
+      enabled: true
       priority: 10
       api_key: ""
       api_secret: ""
       access_token: ""
-      redirect_url: "http://localhost:8080/callback"
+      redirect_url: "http://127.0.0.1:61035/callback"
       totp_secret: ""
       token_file: "~/.tradex/tokens/zerodha.json"
       rate_limit_per_second: 3.0
