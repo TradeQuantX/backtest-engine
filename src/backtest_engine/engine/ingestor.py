@@ -18,13 +18,12 @@ from backtest_engine.data_provider.exceptions import (
 )
 from backtest_engine.data_provider.utils.normalization import normalize_timestamp
 from backtest_engine.data_provider.utils.validation import validate_ohlc_data
-from backtest_engine.engine.feeder import DataFeeder
-from backtest_engine.engine.interfaces import (
+from backtest_engine.engine.protocols import DataFeeder, Preprocessor
+from backtest_engine.engine.models import (
     BacktestConfig,
     BacktestContext,
     CandleEvent,
     NormalizedOHLC,
-    Preprocessor,
 )
 
 

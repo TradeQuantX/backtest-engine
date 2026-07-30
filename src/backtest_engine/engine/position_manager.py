@@ -22,8 +22,13 @@ from datetime import datetime
 from typing import Optional, Callable
 
 from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
-from backtest_engine.engine.interfaces import BacktestContext
-from backtest_engine.engine.position import Position, PositionSide, TradeRecord, PositionRequest
+from backtest_engine.engine.models import (
+    BacktestContext,
+    Position,
+    PositionSide,
+    TradeRecord,
+    PositionRequest,
+)
 from backtest_engine.engine.exits import evaluate_exits
 
 

@@ -18,8 +18,11 @@ in the same bar but the wrong one executes.
 from typing import Optional, Callable
 
 from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
-from backtest_engine.engine.interfaces import BacktestContext
-from backtest_engine.engine.position import Position, PositionSide
+from backtest_engine.engine.models import (
+    BacktestContext,
+    Position,
+    PositionSide,
+)
 
 
 # =============================================================================

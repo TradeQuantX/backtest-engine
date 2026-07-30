@@ -22,7 +22,7 @@ class BaseConfig(BaseModel):
 # Providers
 # =============================================================================
 
-class BaseProviderConfig(BaseModel):
+class BaseProviderConfig(BaseConfig):
     model_config = ConfigDict(frozen=True, extra="forbid", slots=True, validate_default=True)
     name: str
     enabled: bool = True
@@ -81,7 +81,7 @@ ProviderConfig = Union[ZerodhaConfig, DhanConfig, BaseProviderConfig]
 # Data Provider
 # =============================================================================
 
-class DataProviderConfig(BaseModel):
+class DataProviderConfig(BaseConfig):
     model_config = ConfigDict(frozen=True, extra="forbid", slots=True, validate_default=True)
     
     default_provider: str = "zerodha"
@@ -123,12 +123,16 @@ class DataProviderConfig(BaseModel):
             [p for p in self.providers.values() if p.enabled],
             key=lambda p: p.priority, reverse=True
         )
+    
+    def resolve_path(self, path: Path) -> Path:
+        """Expand user home directory in path."""
+        return path.expanduser()
 
 # =============================================================================
 # Engine
 # =============================================================================
 
-class BacktestConfig(BaseModel):
+class BacktestConfig(BaseConfig):
     model_config = ConfigDict(frozen=True, extra="forbid", slots=True, validate_default=True)
     
     symbol: str
@@ -162,26 +166,26 @@ class BacktestConfig(BaseModel):
         if not v: raise ValueError("At least one timeframe required")
         return v
 
-class PositionManagerConfig(BaseModel):
+class PositionManagerConfig(BaseConfig):
     model_config = ConfigDict(frozen=True, extra="forbid", slots=True)
     initial_cash: float = 1_000_000.0
     commission_per_share: float = 0.0
     commission_pct: float = 0.0
     slippage_pct: float = 0.0
 
-class TradeLoggerConfig(BaseModel):
+class TradeLoggerConfig(BaseConfig):
     model_config = ConfigDict(frozen=True, extra="forbid", slots=True)
     base_dir: str = "backtest_results"
     strategy_name: str = "default"
     output_format: str = "csv"
 
-class DataFeederConfig(BaseModel):
+class DataFeederConfig(BaseConfig):
     model_config = ConfigDict(frozen=True, extra="forbid", slots=True)
     cache_ttl_seconds: int = 3600
     chunk_size_days: int = 30
     provider_override: Optional[str] = None
 
-class EngineConfig(BaseModel):
+class EngineConfig(BaseConfig):
     model_config = ConfigDict(frozen=True, extra="forbid", slots=True)
     backtest: BacktestConfig
     position_manager: PositionManagerConfig = Field(default_factory=PositionManagerConfig)

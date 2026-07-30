@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
 from backtest_engine.data_provider.utils import IST
-from backtest_engine.engine.position import Position, PositionSide, TradeRecord, EquityPoint
+from backtest_engine.engine.models import Position, PositionSide, TradeRecord, EquityPoint
 
 
 class TestPosition:

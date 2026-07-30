@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from backtest_engine.data_provider.utils import IST
-from backtest_engine.engine.position import Position, PositionSide, TradeRecord
+from backtest_engine.engine.models import Position, PositionSide, TradeRecord, EquityPoint
 from backtest_engine.engine.position_manager import PositionManager
 from backtest_engine.engine.trade_logger import TradeLogger
 
@@ -411,6 +411,3 @@ class TestTradeLogger:
         assert summary["avg_loss"] == 0.0
         assert summary["profit_factor"] == float('inf')
 
-
-# Need to import EquityPoint for the test
-from backtest_engine.engine.position import EquityPoint

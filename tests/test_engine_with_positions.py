@@ -16,11 +16,11 @@ from backtest_engine.shared.types import (
 )
 from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
 from backtest_engine.data_provider.utils import IST
-from backtest_engine.engine.interfaces import BacktestResult, CandleEvent
+from backtest_engine.engine.models import BacktestResult, CandleEvent
 from backtest_engine.engine.engine import BacktestEngine, run_backtest
 from backtest_engine.engine.position_manager import PositionManager
 from backtest_engine.engine.trade_logger import TradeLogger
-from backtest_engine.engine.position import PositionSide
+from backtest_engine.engine.models import PositionSide
 
 
 class TestEngineWithPositions:

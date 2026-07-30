@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
 from backtest_engine.data_provider.utils import IST
-from backtest_engine.engine.position import Position, PositionSide
+from backtest_engine.engine.models import Position, PositionSide
 from backtest_engine.engine.exits import (
     check_stop_loss,
     check_take_profit,
@@ -16,7 +16,7 @@ from backtest_engine.engine.exits import (
     check_custom_exit,
     evaluate_exits,
 )
-from backtest_engine.engine.interfaces import BacktestContext
+from backtest_engine.engine.models import BacktestContext
 
 
 class TestCheckStopLoss:

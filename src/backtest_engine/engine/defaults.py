@@ -6,8 +6,9 @@ in the core engine module.
 """
 
 from pathlib import Path
+
 from backtest_engine.engine.feeder import ParquetDataFeeder
-from backtest_engine.engine.interfaces import DataFeeder, Preprocessor
+from backtest_engine.engine.protocols import DataFeeder, Preprocessor
 from backtest_engine.engine.position_manager import PositionManager
 from backtest_engine.engine.trade_logger import TradeLogger
 import polars as pl

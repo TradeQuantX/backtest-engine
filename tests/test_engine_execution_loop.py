@@ -13,7 +13,7 @@ from backtest_engine.shared.types import (
 )
 from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
 from backtest_engine.data_provider.utils import IST
-from backtest_engine.engine.interfaces import (
+from backtest_engine.engine.models import (
     BacktestConfig,
     BacktestContext,
     CandleCallback,

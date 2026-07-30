@@ -13,9 +13,9 @@ from backtest_engine.shared.types import (
 )
 from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
 from backtest_engine.data_provider.utils import IST
-from backtest_engine.engine.feeder import DataFeeder
 from backtest_engine.engine.ingestor import DataIngestor
-from backtest_engine.engine.interfaces import BacktestConfig, CandleEvent
+from backtest_engine.engine.models import BacktestConfig, CandleEvent
+from backtest_engine.engine.protocols import DataFeeder
 
 
 class TestDataIngestor:

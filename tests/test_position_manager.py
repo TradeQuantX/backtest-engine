@@ -8,9 +8,9 @@ from unittest.mock import MagicMock
 
 from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
 from backtest_engine.data_provider.utils import IST
-from backtest_engine.engine.position import Position, PositionSide, TradeRecord
+from backtest_engine.engine.models import Position, PositionSide, TradeRecord
 from backtest_engine.engine.position_manager import PositionManager, ClosedPosition
-from backtest_engine.engine.interfaces import BacktestContext
+from backtest_engine.engine.models import BacktestContext
 
 
 class TestPositionManager:

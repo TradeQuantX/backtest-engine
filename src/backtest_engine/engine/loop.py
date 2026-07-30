@@ -7,24 +7,21 @@ No async, no wall-clock, no RNG — fully deterministic and Nuitka-friendly.
 """
 
 import time
-from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from backtest_engine.engine.interfaces import (
+from backtest_engine.engine.models import (
     BacktestContext,
     BacktestResult,
     CandleCallback,
     CandleEvent,
     SignalCallback,
 )
-from backtest_engine.engine.position import PositionSide, TradeRecord
+from backtest_engine.engine.models import PositionSide, TradeRecord
 from backtest_engine.engine.exits import evaluate_exits
 from backtest_engine.engine.position_manager import PositionManager, ClosedPosition
-
-if TYPE_CHECKING:
-    from backtest_engine.engine.interfaces import BacktestConfig
-    from backtest_engine.engine.trade_logger import TradeLogger
+from backtest_engine.engine.trade_logger import TradeLogger
+from backtest_engine.shared.types import Interval
 
 
 class ExecutionLoop:

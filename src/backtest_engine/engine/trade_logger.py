@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from backtest_engine.engine.position import TradeRecord
+from backtest_engine.engine.models import TradeRecord
 
 
 class TradeLogger:

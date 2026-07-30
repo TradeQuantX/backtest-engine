@@ -14,7 +14,8 @@ from backtest_engine.shared.types import (
 )
 from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
 from backtest_engine.data_provider.utils import IST
-from backtest_engine.engine.interfaces import BacktestResult, CandleEvent, DataFeeder
+from backtest_engine.engine.models import BacktestResult, CandleEvent
+from backtest_engine.engine.protocols import DataFeeder
 from backtest_engine.engine.engine import BacktestEngine, run_backtest
 
 
@@ -73,7 +74,14 @@ class TestBacktestEngine:
     async def test_engine_creation(self, sample_config):
         """Test engine can be created with config."""
         engine = BacktestEngine(sample_config)
-        assert engine.config == sample_config
+        assert engine.config.symbol == sample_config.symbol
+        assert engine.config.exchange == sample_config.exchange
+        assert engine.config.segment == sample_config.segment
+        assert engine.config.base_interval == sample_config.base_interval
+        assert engine.config.timeframes == sample_config.timeframes
+        assert engine.config.from_date == sample_config.from_date
+        assert engine.config.to_date == sample_config.to_date
+        assert engine.config.strict_validation == sample_config.strict_validation
         assert engine.events is None
         assert engine.result is None
     
@@ -107,8 +115,20 @@ class TestBacktestEngine:
             engine = BacktestEngine(sample_config)
             await engine.prepare(feeder=mock_feeder)
             
-            # Verify ingestor was called
-            mock_ingestor.ingest.assert_called_once_with(mock_feeder, sample_config)
+            # Verify ingestor was called with config (which now has preprocessor set)
+            call_args = mock_ingestor.ingest.call_args
+            assert call_args is not None
+            called_feeder, called_config = call_args[0]
+            assert called_feeder == mock_feeder
+            assert called_config.symbol == sample_config.symbol
+            assert called_config.exchange == sample_config.exchange
+            assert called_config.segment == sample_config.segment
+            assert called_config.base_interval == sample_config.base_interval
+            assert called_config.timeframes == sample_config.timeframes
+            assert called_config.from_date == sample_config.from_date
+            assert called_config.to_date == sample_config.to_date
+            assert called_config.strict_validation == sample_config.strict_validation
+            assert called_config.preprocessor is not None  # Preprocessor is set by prepare()
             assert engine.events == sample_events
             assert engine._prepared is True
     

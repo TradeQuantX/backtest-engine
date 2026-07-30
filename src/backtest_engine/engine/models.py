@@ -1,26 +1,141 @@
 """
-Position data models for the backtest engine.
+Core data models for the execution engine.
 
-Immutable, frozen dataclasses with slots for Nuitka compatibility and performance.
+This module contains ALL dataclasses, enums, and type aliases used across the engine.
+It has ZERO dependencies on implementation modules - only stdlib, shared.types, and data_provider interfaces.
 """
-
-from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
 from typing import Callable, Optional
 from uuid import uuid4
 
-from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
-from backtest_engine.engine.interfaces import BacktestContext
+import polars as pl
 
+from backtest_engine.shared.types import (
+    Exchange,
+    Interval,
+    Segment,
+)
+from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
+
+
+# =============================================================================
+# Enums
+# =============================================================================
+
+from enum import Enum
 
 class PositionSide(str, Enum):
     """Position side: LONG or SHORT."""
     LONG = "LONG"
     SHORT = "SHORT"
 
+
+# =============================================================================
+# Configuration
+# =============================================================================
+
+@dataclass(frozen=True, slots=True)
+class BacktestConfig:
+    """
+    Complete configuration for a backtest run.
+    
+    All parameters are immutable after construction. Use the constructor directly
+    or create a new instance with modified fields via dataclasses.replace().
+    """
+    symbol: str
+    exchange: Exchange
+    segment: Segment
+    base_interval: Interval          # e.g., Interval.MINUTE_1
+    timeframes: list[Interval]       # e.g., [Interval.MINUTE_1, Interval.MINUTE_5, Interval.DAY]
+    from_date: datetime              # IST-aware
+    to_date: datetime                # IST-aware
+    strict_validation: bool = True   # Raise on gaps/invalid OHLC
+    preprocessor: "Preprocessor" = None  # Default set in __post_init__
+    
+    def __post_init__(self):
+        if self.preprocessor is None:
+            from backtest_engine.engine.defaults import get_default_preprocessor
+            object.__setattr__(self, 'preprocessor', get_default_preprocessor())
+
+
+# =============================================================================
+# Events & Callbacks
+# =============================================================================
+
+@dataclass(frozen=True, slots=True)
+class CandleEvent:
+    """
+    A single closed candle emitted to the researcher callback.
+    
+    The timestamp represents the CLOSE time (boundary) of the candle,
+    ensuring no lookahead bias — the callback fires only after all
+    constituent base bars are processed.
+    """
+    timestamp: datetime              # IST, candle CLOSE time (boundary)
+    timeframe: Interval              # Which timeframe this candle belongs to
+    ohlc: NormalizedOHLC             # The closed candle data
+    context: Optional["BacktestContext"] = None  # Run metadata (symbol, progress, etc.)
+
+
+# Type alias for the researcher callback - receives event and context separately
+type CandleCallback = Callable[["CandleEvent", "BacktestContext"], None]
+
+
+# =============================================================================
+# Run Context
+# =============================================================================
+
+@dataclass(slots=True)
+class BacktestContext:
+    """
+    Runtime context passed to every callback invocation.
+    
+    Includes progress tracking (total_bars known upfront from merged event list).
+    Hot-path fields (current_bar_index, progress_pct, current_prices) are mutable
+    to avoid allocation on every bar in the execution loop.
+    """
+    symbol: str
+    exchange: Exchange
+    segment: Segment
+    base_interval: Interval
+    timeframes: list[Interval]
+    total_bars: int                  # KNOWN UPFRONT from merged event list
+    current_bar_index: int = 0
+    progress_pct: float = 0.0
+    
+    # Position management (added by engine at runtime)
+    position_manager: "PositionManagerProtocol" = field(default=None, repr=False)
+    trade_logger: "TradeLoggerProtocol" = field(default=None, repr=False)
+    current_prices: dict[str, float] = field(default_factory=dict, repr=False)
+    
+    def update_progress(self, current_bar_index: int) -> None:
+        """Update progress in-place (mutates for hot-path efficiency)."""
+        self.current_bar_index = current_bar_index
+        self.progress_pct = (current_bar_index + 1) / self.total_bars * 100 if self.total_bars > 0 else 0.0
+
+
+# =============================================================================
+# Result
+# =============================================================================
+
+@dataclass(frozen=True, slots=True)
+class BacktestResult:
+    """Result returned after a backtest run completes."""
+    events_processed: int
+    duration_seconds: float
+    
+    # Trade logging results
+    trade_log_path: Optional[str] = None
+    equity_curve_path: Optional[str] = None
+    run_dir: Optional[str] = None
+    summary_stats: Optional[dict] = None
+
+
+# =============================================================================
+# Position Management Models
+# =============================================================================
 
 @dataclass(frozen=True, slots=True)
 class Position:
@@ -41,7 +156,7 @@ class Position:
     stop_loss: Optional[float] = None
     trailing_stop_pct: Optional[float] = None
     take_profit: Optional[float] = None
-    custom_exit_fn: Optional[Callable[[Position, BacktestContext], bool]] = None
+    custom_exit_fn: Optional[Callable[["Position", "BacktestContext"], bool]] = None
     
     # Trailing stop state (updated on favorable moves)
     highest_price: float = 0.0  # For LONG trailing stops
@@ -187,10 +302,23 @@ class PositionRequest:
     stop_loss: Optional[float] = None
     trailing_stop_pct: Optional[float] = None
     take_profit: Optional[float] = None
-    custom_exit_fn: Optional[Callable[[Position, BacktestContext], bool]] = None
+    custom_exit_fn: Optional[Callable[["Position", "BacktestContext"], bool]] = None
     
     def __post_init__(self):
         if self.quantity <= 0:
             raise ValueError("Quantity must be positive")
         if self.entry_price <= 0:
             raise ValueError("Entry price must be positive")
+
+
+# =============================================================================
+# Forward references for protocols (resolved at runtime)
+# =============================================================================
+
+# These are imported by protocols.py for type hints
+# The actual classes are defined above
+Preprocessor = "Preprocessor"
+PositionManagerProtocol = "PositionManagerProtocol"
+TradeLoggerProtocol = "TradeLoggerProtocol"
+TargetQuantity = dict[str, float]
+SignalCallback = Callable[["CandleEvent", "BacktestContext"], TargetQuantity]

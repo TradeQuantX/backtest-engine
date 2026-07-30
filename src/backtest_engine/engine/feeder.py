@@ -6,10 +6,8 @@ Future feeders (MongoDB, TimescaleDB) implement the same protocol.
 """
 
 from backtest_engine.data_provider.client import DataProviderClient
-from backtest_engine.engine.interfaces import (
-    BacktestConfig,
-    DataFeeder,
-)
+from backtest_engine.engine.models import BacktestConfig
+from backtest_engine.engine.protocols import DataFeeder
 from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
 
 

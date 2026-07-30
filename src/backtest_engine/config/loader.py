@@ -2,7 +2,7 @@
 
 from typing import Optional
 from .config import settings
-from .models import DataProviderConfig, BacktestConfig, EngineConfig, ProviderConfig, ZerodhaConfig, DhanConfig
+from .models import DataProviderConfig, BacktestConfig, EngineConfig, ProviderConfig, ZerodhaConfig, DhanConfig, BaseProviderConfig
 
 
 def load_data_provider_config() -> DataProviderConfig:
@@ -15,12 +15,14 @@ def load_data_provider_config() -> DataProviderConfig:
         if not data.get("enabled", True):
             continue
         provider_type = data.get("type", name)
+        # Remove 'type' field before passing to constructor
+        data_copy = {k: v for k, v in data.items() if k != "type"}
         if provider_type == "zerodha":
-            providers[name] = ZerodhaConfig(**data)
+            providers[name] = ZerodhaConfig(**data_copy)
         elif provider_type == "dhan":
-            providers[name] = DhanConfig(**data)
+            providers[name] = DhanConfig(**data_copy)
         else:
-            providers[name] = BaseProviderConfig(**data)
+            providers[name] = BaseProviderConfig(**data_copy)
     
     raw["providers"] = providers
     return DataProviderConfig(**raw)

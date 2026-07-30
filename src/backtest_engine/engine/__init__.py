@@ -7,20 +7,24 @@ A minimal, deterministic, event-driven backtesting framework for quantitative re
 from backtest_engine.config import load_backtest_config, load_engine_config
 from backtest_engine.config.models import BacktestConfig, EngineConfig
 from backtest_engine.engine.engine import BacktestEngine, run_backtest
-from backtest_engine.engine.interfaces import (
+from backtest_engine.engine.models import (
     BacktestContext,
     BacktestResult,
     CandleCallback,
     CandleEvent,
-    DataFeeder,
-    Preprocessor,
-)
-from backtest_engine.engine.position import (
     Position,
     PositionSide,
     PositionRequest,
     TradeRecord,
     EquityPoint,
+)
+from backtest_engine.engine.protocols import (
+    DataFeeder,
+    Preprocessor,
+    PositionManagerProtocol,
+    TradeLoggerProtocol,
+    TargetQuantity,
+    SignalCallback,
 )
 
 __all__ = [
@@ -41,12 +45,17 @@ __all__ = [
     # Protocols
     "DataFeeder",
     "Preprocessor",
+    "PositionManagerProtocol",
+    "TradeLoggerProtocol",
     # Position Management
     "Position",
     "PositionSide",
     "PositionRequest",
     "TradeRecord",
     "EquityPoint",
+    # Type aliases
+    "TargetQuantity",
+    "SignalCallback",
 ]
 
 __version__ = "0.1.0"

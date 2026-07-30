@@ -7,31 +7,42 @@ Hides feeder, ingestor, and loop internals. Provides fluent API:
     result = engine.run()
 """
 
-from typing import TYPE_CHECKING
-
 from backtest_engine.config import load_backtest_config, load_engine_config
-from backtest_engine.config.models import BacktestConfig, EngineConfig
+from backtest_engine.config.models import BacktestConfig as PydanticBacktestConfig, EngineConfig
 from backtest_engine.engine.defaults import (
     create_default_feeder,
     create_default_position_manager,
     create_default_trade_logger,
 )
 from backtest_engine.engine.ingestor import DataIngestor
-from backtest_engine.engine.interfaces import (
+from backtest_engine.engine.models import (
+    BacktestConfig,
     BacktestContext,
     BacktestResult,
     CandleCallback,
     CandleEvent,
-    DataFeeder,
     SignalCallback,
     TargetQuantity,
 )
+from backtest_engine.engine.protocols import DataFeeder
 from backtest_engine.engine.loop import ExecutionLoop
 from backtest_engine.engine.position_manager import PositionManager
 from backtest_engine.engine.trade_logger import TradeLogger
 
-if TYPE_CHECKING:
-    from backtest_engine.engine.ingestor import DataIngestor
+
+def _to_dataclass_config(config: PydanticBacktestConfig) -> BacktestConfig:
+    """Convert Pydantic BacktestConfig to dataclass BacktestConfig."""
+    return BacktestConfig(
+        symbol=config.symbol,
+        exchange=config.exchange,
+        segment=config.segment,
+        base_interval=config.base_interval,
+        timeframes=config.timeframes,
+        from_date=config.from_date,
+        to_date=config.to_date,
+        strict_validation=config.strict_validation,
+        preprocessor=None,  # Will be set by engine.prepare()
+    )
 
 
 class BacktestEngine:
@@ -55,17 +66,21 @@ class BacktestEngine:
         result = await run_backtest(config, my_callback)
     """
     
-    def __init__(self, config: BacktestConfig | EngineConfig):
+    def __init__(self, config: PydanticBacktestConfig | EngineConfig | BacktestConfig):
         """
         Initialize the engine with a configuration.
         
         Args:
-            config: BacktestConfig or EngineConfig with all parameters
+            config: BacktestConfig (Pydantic or dataclass) or EngineConfig with all parameters
         """
         if isinstance(config, EngineConfig):
             self._config = config.backtest
             self._engine_config = config
+        elif isinstance(config, PydanticBacktestConfig):
+            self._config = _to_dataclass_config(config)
+            self._engine_config = EngineConfig(backtest=config)
         else:
+            # Already a dataclass BacktestConfig
             self._config = config
             self._engine_config = EngineConfig(backtest=config)
         self._callbacks: list[CandleCallback] = []
@@ -120,7 +135,7 @@ class BacktestEngine:
     async def prepare(
         self,
         feeder: DataFeeder | None = None,
-        ingestor: "DataIngestor | None" = None,
+        ingestor: DataIngestor | None = None,
         position_manager: PositionManager | None = None,
         trade_logger: TradeLogger | None = None,
     ) -> "BacktestEngine":

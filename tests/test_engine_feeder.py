@@ -14,7 +14,8 @@ from backtest_engine.shared.types import (
 from backtest_engine.data_provider.interfaces.models import NormalizedOHLC
 from backtest_engine.data_provider.utils import IST
 from backtest_engine.engine.feeder import ParquetDataFeeder
-from backtest_engine.engine.interfaces import BacktestConfig, DataFeeder
+from backtest_engine.engine.models import BacktestConfig
+from backtest_engine.engine.protocols import DataFeeder
 
 
 class TestParquetDataFeeder:
@@ -203,7 +204,7 @@ class TestParquetDataFeeder:
     
     def test_feeder_implements_protocol(self):
         """Verify ParquetDataFeeder implements DataFeeder."""
-        from backtest_engine.engine.interfaces import DataFeeder
+        from backtest_engine.engine.protocols import DataFeeder
         
         feeder = ParquetDataFeeder()
         assert isinstance(feeder, DataFeeder)
