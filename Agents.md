@@ -93,6 +93,7 @@ The test: Every changed line should trace directly to the user's request.
 * **Never** use string-based forward references.
 * Never use `from __future__ import annotations` solely to work around circular dependencies.
 * Structure modules so annotations resolve naturally without deferred evaluation.
+* Use `typing.Self` where appropriate for class methods.
 
 ## Naming, Module Organization & Responsibility
 
