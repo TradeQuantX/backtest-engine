@@ -30,11 +30,7 @@ data_provider:
       type: "zerodha"
       enabled: true
       priority: 10
-      api_key: ""
-      api_secret: ""
-      access_token: ""
-      redirect_url: "http://127.0.0.1:61035/callback"
-      totp_secret: ""
+      redirect_url: "http://127.0.0.1:57089/auth/callback"
       token_file: "~/.tradex/tokens/zerodha.json"
       rate_limit_per_second: 3.0
       rate_limit_per_minute: 100
@@ -46,10 +42,6 @@ data_provider:
       type: "dhan"
       enabled: false
       priority: 20
-      api_key: ""
-      api_secret: ""
-      client_id: ""
-      access_token: ""
       static_ip: ""
       token_file: "~/.tradex/tokens/dhan.json"
       rate_limit_per_second: 5.0

@@ -46,7 +46,7 @@ settings = Dynaconf(
         Validator("DATA_PROVIDER.RETRY_MAX_DELAY", gte=0),
         Validator("DATA_PROVIDER.RETRY_EXPONENTIAL_BASE", gt=1),
         
-        # Provider secrets (conditional on enabled)
+        # Provider long-term secrets (conditional on enabled)
         Validator("DATA_PROVIDER.PROVIDERS.ZERODHA.API_KEY", must_exist=True,
                   when=Validator("DATA_PROVIDER.PROVIDERS.ZERODHA.ENABLED", eq=True)),
         Validator("DATA_PROVIDER.PROVIDERS.ZERODHA.API_SECRET", must_exist=True,
@@ -55,7 +55,7 @@ settings = Dynaconf(
                   when=Validator("DATA_PROVIDER.PROVIDERS.DHAN.ENABLED", eq=True)),
         Validator("DATA_PROVIDER.PROVIDERS.DHAN.CLIENT_ID", must_exist=True,
                   when=Validator("DATA_PROVIDER.PROVIDERS.DHAN.ENABLED", eq=True)),
-        Validator("DATA_PROVIDER.PROVIDERS.DHAN.ACCESS_TOKEN", must_exist=True,
+        Validator("DATA_PROVIDER.PROVIDERS.DHAN.API_SECRET", must_exist=True,
                   when=Validator("DATA_PROVIDER.PROVIDERS.DHAN.ENABLED", eq=True)),
         
         # Engine validators

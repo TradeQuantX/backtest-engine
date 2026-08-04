@@ -27,9 +27,9 @@ class BaseProviderConfig(BaseConfig):
     name: str
     enabled: bool = True
     priority: int = 0
-    api_key: SecretStr = ""
-    api_secret: SecretStr = ""
-    access_token: SecretStr = ""
+    api_key: SecretStr
+    api_secret: SecretStr
+    access_token: Optional[SecretStr] = None
     
     @field_validator("priority")
     @classmethod
@@ -57,8 +57,8 @@ class ZerodhaConfig(BaseProviderConfig):
 
 class DhanConfig(BaseProviderConfig):
     name: str = "dhan"
-    client_id: str = ""
-    access_token: SecretStr = ""
+    client_id: str
+    access_token: Optional[SecretStr] = None
     static_ip: Optional[str] = None
     token_file: str = "~/.tradex/tokens/dhan.json"
     rate_limit_per_second: float = 5.0

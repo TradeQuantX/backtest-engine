@@ -647,7 +647,6 @@ class BenchmarkContext:
         zerodha_config = ZerodhaConfig(
             api_key="test_api_key",
             api_secret="test_api_secret",
-            access_token="mock_access_token_12345",  # Pre-set to skip OAuth
             redirect_url="http://localhost:8080/callback",
             token_file="./.bench_token.json",
         )

@@ -57,8 +57,8 @@ class DhanAuthHelper:
         """
         # 1. Try config access_token
         if self.config.access_token:
-            if await self.validate_token(http_client, self.config.access_token):
-                return self.config.access_token
+            if await self.validate_token(http_client, self.config.access_token.get_secret_value()):
+                return self.config.access_token.get_secret_value()
         
         # 2. Try loading saved token
         saved_token = await self._load_token()

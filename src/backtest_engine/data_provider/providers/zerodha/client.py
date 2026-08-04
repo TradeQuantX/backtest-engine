@@ -80,7 +80,7 @@ class ZerodhaProvider(BaseProvider):
         if not self._access_token:
             raise AuthError("Not authenticated", provider=self.name)
         return {
-            "Authorization": f"token {self.config.api_key}:{self._access_token}",
+            "Authorization": f"token {self.config.api_key.get_secret_value()}:{self._access_token}",
         }
     
     async def _do_authenticate(self) -> str:

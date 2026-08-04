@@ -65,8 +65,8 @@ class ZerodhaAuthHelper:
         """
         # 1. Try config access_token
         if self.config.access_token:
-            if await self.validate_token(http_client, self.config.access_token):
-                return self.config.access_token
+            if await self.validate_token(http_client, self.config.access_token.get_secret_value()):
+                return self.config.access_token.get_secret_value()
         
         # 2. Try loading saved token
         saved_token = await self._load_token()
@@ -92,11 +92,12 @@ class ZerodhaAuthHelper:
         parsed_url = urlparse(redirect_url)
         callback_host = parsed_url.hostname or "localhost"
         callback_port = parsed_url.port or 8080
+        callback_path = parsed_url.path or "/"
         
         # Generate login URL
         login_url = (
             f"{self.LOGIN_URL}?"
-            f"v={self.KITE_VERSION}&api_key={self.config.api_key}"
+            f"v={self.KITE_VERSION}&api_key={self.config.api_key.get_secret_value()}"
             f"&redirect_url={redirect_url}"
         )
         
@@ -135,7 +136,7 @@ class ZerodhaAuthHelper:
         
         # Create aiohttp app
         app = web.Application()
-        app.router.add_get("/", handle_callback)
+        app.router.add_get(callback_path, handle_callback)
         
         runner = web.AppRunner(app)
         await runner.setup()
@@ -172,13 +173,13 @@ class ZerodhaAuthHelper:
     async def _exchange_token(self, http_client: httpx.AsyncClient, request_token: str) -> str:
         """Exchange request_token for access_token."""
         checksum = hashlib.sha256(
-            f"{self.config.api_key}{request_token}{self.config.api_secret}".encode()
+            f"{self.config.api_key.get_secret_value()}{request_token}{self.config.api_secret.get_secret_value()}".encode()
         ).hexdigest()
         
         response = await http_client.post(
             self.TOKEN_URL,
             data={
-                "api_key": self.config.api_key,
+                "api_key": self.config.api_key.get_secret_value(),
                 "request_token": request_token,
                 "checksum": checksum,
             },
@@ -211,7 +212,7 @@ class ZerodhaAuthHelper:
         try:
             response = await http_client.get(
                 self.PROFILE_URL,
-                headers={"Authorization": f"token {self.config.api_key}:{token}"},
+                headers={"Authorization": f"token {self.config.api_key.get_secret_value()}:{token}"},
             )
             return response.status_code == 200
         except Exception:
@@ -226,7 +227,7 @@ class ZerodhaAuthHelper:
         
         data = {
             "access_token": token,
-            "api_key": self.config.api_key,
+            "api_key": self.config.api_key.get_secret_value(),
             "user_id": self._user_id,
             "saved_at": datetime.now(IST).isoformat(),
         }
@@ -255,7 +256,7 @@ class ZerodhaAuthHelper:
         try:
             response = await http_client.delete(
                 self.TOKEN_URL,
-                params={"api_key": self.config.api_key, "access_token": token},
+                params={"api_key": self.config.api_key.get_secret_value(), "access_token": token},
                 headers={"X-Kite-Version": self.KITE_VERSION},
             )
             # Delete local token file regardless of server response

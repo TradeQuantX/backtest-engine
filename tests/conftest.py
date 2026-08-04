@@ -86,7 +86,7 @@ def test_data_provider_config():
         providers={
             "zerodha": ZerodhaConfig(
                 name="zerodha", enabled=True,
-                api_key="test", api_secret="test"
+                api_key="test_key", api_secret="test_secret"
             ),
         },
     )
