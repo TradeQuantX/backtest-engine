@@ -6,7 +6,7 @@ This is the single entry point for researchers to access historical data.
 
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Self
 
 from backtest_engine.config.models import DataProviderConfig
 from backtest_engine.data_provider.exceptions import (
@@ -298,7 +298,7 @@ class DataProviderClient:
         self._default_provider = None
         self._initialized = False
     
-    async def __aenter__(self) -> "DataProviderClient":
+    async def __aenter__(self) -> Self:
         """Async context manager entry."""
         await self.initialize()
         return self

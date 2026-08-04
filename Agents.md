@@ -93,3 +93,7 @@ The test: Every changed line should trace directly to the user's request.
 * **Never** use string-based forward references.
 * Never use `from __future__ import annotations` solely to work around circular dependencies.
 * Structure modules so annotations resolve naturally without deferred evaluation.
+
+## Naming, Module Organization & Responsibility
+
+Adhere to widely accepted software engineering principles (e.g. SOLID, Clean Architecture, Domain-Driven Design where appropriate, and the Python packaging recommendations from the Python ecosystem). Organize code so that each file, class, and function has a single, well-defined responsibility.
